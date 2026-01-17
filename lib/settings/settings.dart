@@ -24,7 +24,9 @@ class _SettingsPage extends State<Settings>
         return Scaffold(
             appBar: AppBar(
                 backgroundColor: CupertinoColors.black,
-                title: Icon(Icons.settings,color: Colors.white,)
+                leading: Icon(Icons.settings, color: Colors.white),
+                title: Text("Settings", style: TextStyle(fontSize: 30, color: Colors.white)
+                )
             ),
             body: Container(
                 color: CupertinoColors.black,
@@ -44,7 +46,7 @@ class _SettingsPage extends State<Settings>
                                             Icon(
                                                 appIcons[index],
                                                 color: Colors.white,
-                                              size: 30,
+                                                size: 30
                                             )
                                             ,
                                             SizedBox(width: 20),

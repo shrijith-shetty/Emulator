@@ -1,5 +1,6 @@
 
 import 'package:emulator/calculator/calculator.dart';
+import 'package:emulator/camera/camera.dart';
 import 'package:emulator/settings/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -33,7 +34,7 @@ class MyApp extends StatelessWidget
 
                 colorScheme: .fromSeed(seedColor: Colors.deepPurple)
             ),
-            home: MyHomePage(title: "title")
+            home: LoginPage(/*title: "title"*/)
         );
     }
 }
@@ -95,12 +96,18 @@ Widget design(BuildContext context, String text)
                         context, MaterialPageRoute(builder: (context) => Calculator(title: 'jai'))
                     );
                 }
-                if (text == 'b'){
-                  Navigator.push(
-                    context,MaterialPageRoute(builder: (context)=>Settings())
-                  );
+                if (text == 'b') 
+                {
+                    Navigator.push(
+                        context, MaterialPageRoute(builder: (context) => Settings())
+                    );
                 }
-                if (text == 'c');
+                if (text == 'c')
+                {
+                    Navigator.push(
+                        context, MaterialPageRoute(builder: (context) => CameraPage())
+                    );
+                }
 
             },
             child: Center(child: Text(text, style: TextStyle(color: Colors.black, fontSize: 30)))

@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_screenutil: ^5.9.3
   decimal: ^3.2.4
+  camera: ^0.11.3
+  gal: ^2.3.2
 
 dev_dependencies:
   flutter_test:
