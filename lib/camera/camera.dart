@@ -1,20 +1,26 @@
+// import 'dart:ffi';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 
 class CameraPage extends StatefulWidget
 {
+    const CameraPage({super.key});
+
     @override
     State<StatefulWidget> createState() => _CameraPageState();
 }
 
 class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver
 {
+    bool isCameraFront = true;
+
     List<CameraDescription> cameras = [];
     CameraController? cameraController;
 
     @override
-    void initState() 
+    void initState()
     {
         super.initState();
         WidgetsBinding.instance.addObserver(this);
@@ -22,7 +28,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver
     }
 
     @override
-    void dispose() 
+    void dispose()
     {
         WidgetsBinding.instance.removeObserver(this);
         cameraController?.dispose();
@@ -30,17 +36,17 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver
     }
 
     @override
-    void didChangeAppLifecycleState(AppLifecycleState state) 
+    void didChangeAppLifecycleState(AppLifecycleState state)
     {
-        if (cameraController == null || !cameraController!.value.isInitialized) 
+        if (cameraController == null || !cameraController!.value.isInitialized)
         {
             return;
         }
 
-        if (state == AppLifecycleState.inactive) 
+        if (state == AppLifecycleState.inactive)
         {
             cameraController?.dispose();
-        } else if (state == AppLifecycleState.resumed) 
+        } else if (state == AppLifecycleState.resumed)
         {
             _setupCameraController();
         }
@@ -48,27 +54,31 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver
 
     Future<void> _setupCameraController() async
     {
-        final availableCamerasList = await availableCameras();
-        if (availableCamerasList.isNotEmpty) 
+        try
         {
-            cameras = availableCamerasList;
-            cameraController =
-            CameraController(cameras.last, ResolutionPreset.high);
+            final availableCamerasList = await availableCameras();
+            if (availableCamerasList.isEmpty) return;
 
-            try
-            {
-                await cameraController!.initialize();
-                if (mounted) setState(()
-                        {});
-            } catch (e)
-            {
-                print("Camera initialization error: $e");
-            }
+            cameras = availableCamerasList;
+
+            cameraController = CameraController(
+                isCameraFront ? cameras.last : cameras.first,
+                ResolutionPreset.high
+            );
+
+            await cameraController!.initialize();
+
+            if (mounted) setState(()
+                    {});
+        } catch (e)
+        {
+            print("Camera initialization error: $e");
         }
+
     }
 
     @override
-    Widget build(BuildContext context) 
+    Widget build(BuildContext context)
     {
         return Scaffold(
             body: cameraController == null || !cameraController!.value.isInitialized
@@ -83,20 +93,47 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver
                                     width: MediaQuery.of(context).size.width * 0.9,
                                     child: CameraPreview(cameraController!)
                                 ),
-                                IconButton(
-                                    onPressed: () async
-                                    {
-                                        final picture = await cameraController!.takePicture();
-                                        await Gal.putImage(picture.path);
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text("Saved to gallery!"))
-                                        );
-                                    },
-                                    iconSize: 100,
-                                    icon: const Icon(
-                                        Icons.camera,
-                                        color: Colors.red
-                                    )
+                                Row(
+                                    children: [
+                                        SizedBox(
+                                            width: 150
+                                        ),
+                                        IconButton(
+                                            onPressed: () async
+                                            {
+                                                final picture = await cameraController!.takePicture();
+                                                await Gal.putImage(picture.path);
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text("Saved to gallery!"))
+                                                );
+                                            },
+                                            iconSize: 100,
+                                            icon: const Icon(
+                                                Icons.camera,
+                                                color: Colors.red
+
+                                            )
+                                        ),
+                                        SizedBox(width: 70),
+                                        IconButton(
+                                            onPressed: () async
+                                            {
+                                                // _setupCameraController();
+                                                setState(()
+                                                    {
+                                                        isCameraFront = !isCameraFront;
+                                                    });
+                                                await _setupCameraController();
+                                            },
+                                            iconSize: 100,
+                                            icon: const Icon(
+                                                Icons.flip_camera_ios_rounded,
+                                                color: Colors.red,
+                                                size: 50
+
+                                            )
+                                        )
+                                    ]
                                 )
                             ]
                         )

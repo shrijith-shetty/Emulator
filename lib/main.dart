@@ -1,6 +1,8 @@
 
+import 'package:emulator/Gallery/gallery.dart';
 import 'package:emulator/calculator/calculator.dart';
 import 'package:emulator/camera/camera.dart';
+import 'package:emulator/settings/settingOption/addWallpaper.dart';
 import 'package:emulator/settings/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -28,13 +30,14 @@ class MyApp extends StatelessWidget
     Widget build(BuildContext context)
     {
 
-        return MaterialApp(
+      return MaterialApp(
             title: 'Flutter Demo',
+            debugShowCheckedModeBanner: false,
             theme: ThemeData(
 
                 colorScheme: .fromSeed(seedColor: Colors.deepPurple)
             ),
-            home: LoginPage(/*title: "title"*/)
+            home: Addwallpaper( /*title: "title"*/)
         );
     }
 }
@@ -67,7 +70,8 @@ class _MyHomePageState extends State<MyHomePage>
                     children: [
                         design(context, "a"),
                         design(context, "b"),
-                        design(context, "c")
+                        design(context, "c"),
+                        design(context, "d")
                     ]
                 )
             )
@@ -96,7 +100,7 @@ Widget design(BuildContext context, String text)
                         context, MaterialPageRoute(builder: (context) => Calculator(title: 'jai'))
                     );
                 }
-                if (text == 'b') 
+                if (text == 'b')
                 {
                     Navigator.push(
                         context, MaterialPageRoute(builder: (context) => Settings())
@@ -108,6 +112,12 @@ Widget design(BuildContext context, String text)
                         context, MaterialPageRoute(builder: (context) => CameraPage())
                     );
                 }
+                if(text=='d')
+                  {
+                    Navigator.push(
+                      context, MaterialPageRoute(builder: (context)=>Gallery())
+                    );
+                  }
 
             },
             child: Center(child: Text(text, style: TextStyle(color: Colors.black, fontSize: 30)))
