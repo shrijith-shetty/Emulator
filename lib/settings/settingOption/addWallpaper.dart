@@ -1,3 +1,4 @@
+import 'package:emulator/settings/settings.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -16,7 +17,16 @@ class _AddWallPaper extends State<Addwallpaper>
         return Scaffold(
             appBar: AppBar(
                 backgroundColor: CupertinoColors.black,
-                leading: Icon(Icons.wallpaper_rounded, color: Colors.white, size: 30),
+                leading: InkWell(
+                    child: Icon(
+                        Icons.wallpaper_rounded,
+                        color: Colors.white,
+                        size: 30
+                    ),
+                  onTap: (){
+                      Navigator.push(context,MaterialPageRoute(builder: (context)=>Settings()));
+                  },
+                ),
                 title: Text("Wallpaper", style: TextStyle(fontSize: 30, color: Colors.white))
             ),
             body: Container(
@@ -24,16 +34,24 @@ class _AddWallPaper extends State<Addwallpaper>
                     // crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                         Center(child: Text("Current Wallpaper", style: TextStyle(fontSize: 30))),
+
                         InkWell(
                             onTap: ()
                             {
-
+                                showModalBottomSheet(context: context,
+                                    builder: (BuildContext context)
+                                    {
+                                        return SizedBox(
+                                            height: 400,
+                                            width: double.infinity,
+                                            child: Builder(builder: builder)
+                                        );
+                                    });
                             },
                             child: Image.asset("assets/Gallery/flower-8559381_1280.jpg",
                                 width: 200,
-                                height: 200
+                                height: 150
                             )
-
                         ),
                         SizedBox(height: 100)
 
@@ -45,3 +63,4 @@ class _AddWallPaper extends State<Addwallpaper>
     }
 
 }
+
