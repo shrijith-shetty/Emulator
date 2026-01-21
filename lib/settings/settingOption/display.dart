@@ -11,11 +11,10 @@ class DisplayClass extends StatefulWidget
 
 class DisplayPage extends State<DisplayClass>
 {
-    String title = "First item";
-    String item1 = "First item";
-    String item2 = "First item";
-    String item3 = "First item";
+    // SampleItem? selectedItem;
+    List<String> item1 = ["item12", "item2", "item"];
     double brightness = 0.4;
+    int count = 0;
     String value = "";
     @override
 
@@ -58,20 +57,9 @@ class DisplayPage extends State<DisplayClass>
                                 }
                             ),
                             Text("Choose Text", style: TextStyle(fontSize: 20)),
-                            InkWell(
-                                onTap: ()
-                                {
-                                    PopupMenuButton<>(onSelected: (value)
-                                        {
-                                            // Text(value, style: TextStyle(fontSize: 20));
-                                        }, itemBuilder: (BuildContext context) => [
-                                            const PopupMenuItem(child: Text("Settings")),
-                                            const PopupMenuItem(child: Text("Settings")),
-                                            const PopupMenuItem(child: Text("Settings")),
-
-                                        ]);
-                                },
-                                child: Text("Current Text is \"bold\"", style: TextStyle(fontSize: 20)))
+                          PopupMenuItem(
+                              // onTap: (),
+                              child: Text("Current Text is \"bold\"", style: TextStyle(fontSize: 20))),
                         ]
                     )
                 )
