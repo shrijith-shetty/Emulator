@@ -1,8 +1,11 @@
 import 'dart:ui';
 
 import 'package:emulator/camera/camera.dart';
+import 'package:emulator/settings/settingOption/aboutphone.dart';
 import 'package:emulator/settings/settingOption/display.dart';
 import 'package:emulator/settings/settingOption/addWallpaper.dart';
+import 'package:emulator/settings/settingOption/password.dart';
+import 'package:emulator/settings/settingOption/update.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -68,7 +71,16 @@ class _SettingsPage extends State<Settings>
                                 {
                                     Navigator.push(context, MaterialPageRoute(builder: (context) => DisplayClass()));
                                 }
-                                print(names[index]);
+                                if (names[index] == "Password")
+                                {
+                                    Navigator.push(context, MaterialPageRoute(builder: (context) => Password()));
+                                }if (names[index] == "About Phone")
+                                {
+                                    Navigator.push(context, MaterialPageRoute(builder: (context) => AboutPhone()));
+                                }if (names[index] == "System Update")
+                                {
+                                    Navigator.push(context, MaterialPageRoute(builder: (context) => Update()));
+                                }
                             }
                         );
                     }

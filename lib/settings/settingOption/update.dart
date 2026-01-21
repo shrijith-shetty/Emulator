@@ -2,14 +2,14 @@ import 'package:emulator/settings/settings.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class Password extends StatefulWidget
+class Update extends StatefulWidget
 {
     @override
-    State<StatefulWidget> createState() => PasswordPage();
+    State<StatefulWidget> createState() => UpdatePage();
 
 }
 
-class PasswordPage extends State<Password>
+class UpdatePage extends State<Update>
 {
     @override
     Widget build(BuildContext context)
@@ -23,8 +23,8 @@ class PasswordPage extends State<Password>
                     {
                       Navigator.push(context,MaterialPageRoute(builder: (context)=>Settings()));
                     },
-                    child: Icon(Icons.password_outlined,size: 30,color: Colors.white,)),
-                title: Text("Password",style: TextStyle(fontSize: 30,color:Colors.white),),
+                    child: Icon(Icons.update,size: 30,color: Colors.white,)),
+                title: Text("Update",style: TextStyle(fontSize: 30,color:Colors.white),),
 
 
             )
