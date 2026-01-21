@@ -1,4 +1,7 @@
+import 'dart:ui';
+
 import 'package:emulator/camera/camera.dart';
+import 'package:emulator/settings/settingOption/display.dart';
 import 'package:emulator/settings/settingOption/addWallpaper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +26,7 @@ class _SettingsPage extends State<Settings>
     ];
 
     @override
-    Widget build(BuildContext context) 
+    Widget build(BuildContext context)
     {
         return Scaffold(
             appBar: AppBar(
@@ -57,9 +60,13 @@ class _SettingsPage extends State<Settings>
                             ),
                             onTap: ()
                             {
-                                if (names[index] == "Display")
+                                if (names[index] == "WallPaper")
                                 {
                                     Navigator.push(context, MaterialPageRoute(builder: (context) => Addwallpaper()));
+                                }
+                                if (names[index] == "Display")
+                                {
+                                    Navigator.push(context, MaterialPageRoute(builder: (context) => DisplayClass()));
                                 }
                                 print(names[index]);
                             }

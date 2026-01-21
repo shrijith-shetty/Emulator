@@ -44,7 +44,7 @@ class GalleryPage extends State<Gallery>
         "water-3021652_1280.jpg",
         "wave-7726187_1280.jpg"
     ];
-    late int itemCount = imageList.length;
+    // late int itemCount = imageList.length;
     @override
     Widget build(BuildContext context)
     {
@@ -74,7 +74,7 @@ class GalleryPage extends State<Gallery>
                         mainAxisSpacing: 10
                     ),
                     itemCount: imageList.length,
-                    itemBuilder: (BuildContext context, int index)
+                    itemBuilder: ( context, int index)
                     {
                         return Image.asset("assets/Gallery/${imageList[index]}", fit: BoxFit.cover);
                     }
