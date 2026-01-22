@@ -33,14 +33,14 @@ class MyApp extends StatelessWidget
     Widget build(BuildContext context)
     {
 
-      return MaterialApp(
+        return MaterialApp(
             title: 'Flutter Demo',
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
 
                 colorScheme: .fromSeed(seedColor: Colors.deepPurple)
             ),
-            home: AboutPhone( /*title: "title"*/)
+            home: Password( /*title: "title"*/)
         );
     }
 }
@@ -115,12 +115,12 @@ Widget design(BuildContext context, String text)
                         context, MaterialPageRoute(builder: (context) => CameraPage())
                     );
                 }
-                if(text=='d')
-                  {
+                if (text == 'd')
+                {
                     Navigator.push(
-                      context, MaterialPageRoute(builder: (context)=>Gallery())
+                        context, MaterialPageRoute(builder: (context) => Gallery())
                     );
-                  }
+                }
 
             },
             child: Center(child: Text(text, style: TextStyle(color: Colors.black, fontSize: 30)))

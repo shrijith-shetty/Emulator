@@ -18,6 +18,7 @@ class _AboutPhoneState extends State<AboutPhone>
     @override
     void initState()
     {
+        // text.clear();
         super.initState();
         loadInfo();
     }
@@ -29,13 +30,14 @@ class _AboutPhoneState extends State<AboutPhone>
             appBar: AppBar(
                 backgroundColor: Colors.black,
                 leading: InkWell(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () => Navigator.push(context,MaterialPageRoute(builder: (context)=>Settings())),
                     child: const Icon(
                         Icons.phone_iphone_outlined,
                         size: 30,
                         color: Colors.white
                     )
                 ),
+
                 title: const Text(
                     'About Phone',
                     style: TextStyle(fontSize: 20, color: Colors.white)
@@ -45,11 +47,25 @@ class _AboutPhoneState extends State<AboutPhone>
                 padding: const EdgeInsets.all(12),
                 child: ListView.builder(
                     itemCount: text.length,
-                    itemBuilder: (BuildContext context, int index)
+                    itemBuilder: (context, int index)
                     {
-                        return Text(
-                            text[index].toString(),
-                            style: const TextStyle(fontSize: 16)
+                        return ClipRRect(
+                            borderRadius: BorderRadiusGeometry.circular(15),
+                            child: Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: Container(
+
+                                    height: 40,
+                                    width: 800,
+                                    color: Colors.black,
+                                    child: Center(
+                                        child: Text(
+                                            text[index].toString(),
+                                            style: const TextStyle(fontSize: 16, color: Colors.white)
+                                        )
+                                    )
+                                )
+                            )
                         );
                     }
                 )
@@ -73,8 +89,8 @@ class _AboutPhoneState extends State<AboutPhone>
                     text.insert(count++, androidInfo.model);
                     text.insert(count++, androidInfo.device);
                     text.insert(count++, androidInfo.product);
-                    text.insert(count++, androidInfo.version as String);
-                    text.insert(count++, androidInfo.totalDiskSize as String);
+                    // text.insert(count++, androidInfo.version as String);
+                    // text.insert(count++, androidInfo.totalDiskSize as String);
                 });
             return;
         }
@@ -91,8 +107,8 @@ class _AboutPhoneState extends State<AboutPhone>
                         text.insert(count++, androidInfo.model);
                         text.insert(count++, androidInfo.device);
                         text.insert(count++, androidInfo.product);
-                        text.insert(count++, androidInfo.version as String);
-                        text.insert(count++, androidInfo.totalDiskSize as String);
+                        // text.insert(count++, androidInfo.version as String);
+                        // text.insert(count++, androidInfo.totalDiskSize as String);
                     });
                 break;
 
@@ -106,8 +122,8 @@ class _AboutPhoneState extends State<AboutPhone>
                         text.insert(count++, androidInfo.model);
                         text.insert(count++, androidInfo.device);
                         text.insert(count++, androidInfo.product);
-                        text.insert(count++, androidInfo.version as String);
-                        text.insert(count++, androidInfo.totalDiskSize as String);
+                        // text.insert(count++, androidInfo.version as String);
+                        // text.insert(count++, androidInfo.totalDiskSize as String);
                     });
                 break;
 
@@ -121,8 +137,8 @@ class _AboutPhoneState extends State<AboutPhone>
                         text.insert(count++, androidInfo.model);
                         text.insert(count++, androidInfo.device);
                         text.insert(count++, androidInfo.product);
-                        text.insert(count++, androidInfo.version as String);
-                        text.insert(count++, androidInfo.totalDiskSize as String);
+                        // text.insert(count++, androidInfo.version as String);
+                        // text.insert(count++, androidInfo.totalDiskSize as String);
                     });
                 break;
 
