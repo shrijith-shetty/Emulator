@@ -20,6 +20,7 @@ class LoginPage extends StatefulWidget
 }
 class _LoginPageState extends State<LoginPage>
 {
+    bool _obsecure = true;
     TextEditingController Password = TextEditingController();
     // _LoginPageState({required this.Password});
     @override
@@ -30,25 +31,44 @@ class _LoginPageState extends State<LoginPage>
                 child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                        TextField(
-                            controller: Password,
+                        Padding(
+                            padding: const EdgeInsets.only(left: 14.0, right: 14),
+                            child: SizedBox(
+                                // width: 370,
+                                height: 50,
+                                child: TextField(
+                                    controller: Password,
+                                    obscureText: _obsecure,
+                                    decoration: InputDecoration(
+                                        filled: true,
+                                        labelText: "Password",
 
-                            decoration: InputDecoration(
-                                filled: true,
-                                fillColor: Colors.red.shade100,
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                        color: Colors.blue,
-                                        width: 1.0
-                                    )
-                                ),
-                                focusedBorder: OutlineInputBorder(
+                                        labelStyle: TextStyle(
+                                            color: Colors.red
+                                        ),
+                                        prefixIcon: Icon(Icons.password, color: Colors.black, size: 20, fontWeight: FontWeight.bold),
+                                        suffixIcon: IconButton(onPressed: (){
+                                          setState(() {
+                                            _obsecure=!_obsecure;
+                                          });
+                                        }, icon: Icon(_obsecure?CupertinoIcons.eye:CupertinoIcons.eye_slash)),
 
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                        color: Colors.purple,
-                                        width: 2
+                                        fillColor: Colors.red.shade100,
+                                        border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(15),
+                                            borderSide: BorderSide(
+                                                color: Colors.blue,
+                                                width: 1.0
+                                            )
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+
+                                            borderRadius: BorderRadius.circular(15),
+                                            borderSide: BorderSide(
+                                                color: Colors.purple,
+                                                width: 2
+                                            )
+                                        )
                                     )
                                 )
                             )
@@ -56,29 +76,32 @@ class _LoginPageState extends State<LoginPage>
                         SizedBox(
                             height: 30
                         ),
-                        Container(
-                            width: 100,
-                            height: 50,
-                            decoration: BoxDecoration(
-                                color: Colors.blue
+                        ClipRRect(
+                            borderRadius: BorderRadiusGeometry.circular(30),
+                            child: Container(
+                                width: 150,
+                                height: 50,
 
-                            ),
+                                decoration: BoxDecoration(
+                                    color: Colors.blue
+                                ),
 
-                            child: InkWell(onTap: () => 
-                                {
-                                    Text("Sign IN"),
-                                    if(Password.text == "password")
+                                child: InkWell(onTap: () =>
                                     {
-                                        Navigator.push(
-                                            context, MaterialPageRoute(builder: (context) => MyHomePage(title: "Jai"))
-                                        )
-                                    }
-                                    else
-                                    {
-                                        Password.text = ""
-                                    }
-                                }
 
+                                        if(Password.text == "password")
+                                        {
+                                            Navigator.push(
+                                                context, MaterialPageRoute(builder: (context) => MyHomePage(title: "Jai"))
+                                            )
+                                        }
+                                        else
+                                        {
+                                            Password.clear()
+                                        }
+                                    }, child: Center(child: Text("Sign In", style: TextStyle(color: Colors.black, fontSize: 20)))
+
+                                )
                             )
                         )
                     ]

@@ -11,6 +11,8 @@ class Password extends StatefulWidget
 
 class PasswordPage extends State<Password>
 {
+    bool _obsecOld = true;
+    bool _obsecNew = true;
     String errorMsg = "";
     TextEditingController oldPassword = TextEditingController();
     TextEditingController newPassword = TextEditingController();
@@ -56,9 +58,22 @@ class PasswordPage extends State<Password>
                                                         SizedBox(
                                                             width: 400,
                                                             child: TextField(
-
+                                                                obscureText: true,
                                                                 controller: oldPassword,
+
                                                                 decoration: InputDecoration(
+                                                                    suffixIcon: IconButton(onPressed: ()
+                                                                        {setState(()
+                                                                                {
+                                                                                    _obsecOld = !_obsecOld;
+                                                                                });
+                                                                        }, 
+                                                                        icon: Icon(
+                                                                            _obsecOld ?
+                                                                                CupertinoIcons.eye :
+                                                                                CupertinoIcons.eye_slash
+                                                                        )
+                                                                    ),
                                                                     labelText: "Enter old Password",
                                                                     fillColor: Colors.grey,
                                                                     filled: true,
@@ -74,8 +89,16 @@ class PasswordPage extends State<Password>
                                                         SizedBox(
                                                             width: 400,
                                                             child: TextField(
+                                                                obscureText: true,
                                                                 controller: newPassword,
                                                                 decoration: InputDecoration(
+                                                                    suffixIcon: IconButton(onPressed: ()
+                                                                        {
+                                                                            setState(()
+                                                                                {
+                                                                                    _obsecNew = !_obsecNew;
+                                                                                });
+                                                                        }, icon: Icon(_obsecNew ? CupertinoIcons.eye : CupertinoIcons.eye_slash)),
                                                                     labelText: "Enter old Password",
                                                                     fillColor: Colors.grey,
                                                                     filled: true,
@@ -134,7 +157,10 @@ class PasswordPage extends State<Password>
                                                                     height: 50,
                                                                     width: 100,
                                                                     color: Colors.blue,
-                                                                    child: Text("Change")
+                                                                    child: Center(
+                                                                        // padding: const EdgeInsets.all(10.0),
+                                                                        child: Text("Change")
+                                                                    )
                                                                 )
                                                             )
 
@@ -150,7 +176,10 @@ class PasswordPage extends State<Password>
                                     borderRadius: BorderRadiusGeometry.circular(12),
                                     child: Container(
 
-                                        height: 50, width: 100, color: Colors.blue, child: Center(child: Text("Change Password"))))
+                                        height: 50, width: 150, color: Colors.blue, child: Center(
+                                            // padding: const EdgeInsets.only(left: 15.0, top: 5),
+                                            child: Text("Change Password")
+                                        )))
                             ),
                             SizedBox(height: 30),
                             Text(errorMsg, style: TextStyle(fontSize: 20, color: Colors.black))
