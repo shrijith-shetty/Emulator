@@ -1,5 +1,6 @@
 import 'package:emulator/settings/settings.dart';
 import 'package:flutter/material.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 
 class DisplayClass extends StatefulWidget
 {
@@ -11,11 +12,8 @@ class DisplayClass extends StatefulWidget
 
 class DisplayPage extends State<DisplayClass>
 {
-    // SampleItem? selectedItem;
-    List<String> item1 = ["item12", "item2", "item"];
     double brightness = 0.4;
     int count = 0;
-    String value = "";
     @override
 
     Widget build(BuildContext context)
@@ -26,9 +24,26 @@ class DisplayPage extends State<DisplayClass>
                 leading: InkWell(
                     onTap: ()
                     {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => Settings()));
-                    }, child: Icon(Icons.display_settings_outlined, color: Colors.white, size: 30)),
-                title: Text("Display", style: TextStyle(fontSize: 30, color: Colors.white))
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Settings()
+                            )
+                        );
+                    },
+                    child: Icon(
+                        Icons.display_settings_outlined,
+                        color: Colors.white,
+                        size: 30
+                    )
+                ),
+                title: Text(
+                    "Display",
+                    style: TextStyle(
+                        fontSize: 30,
+                        color: Colors.white
+                    )
+                )
             ),
             body: SizedBox(
                 width: double.infinity,
@@ -45,21 +60,25 @@ class DisplayPage extends State<DisplayClass>
                             ),
                             Slider(
                                 value: brightness,
-                                max: 100,
                                 min: 0,
-                                divisions: 1,
-                                onChanged: (brightness)
+                                max: 100,
+                                divisions: 100,
+                                onChanged: (value)
+                                async
                                 {
                                     setState(()
                                         {
-                                            brightness += brightness;
+                                            brightness = value;
                                         });
+                                    await ScreenBrightness.instance.setSystemScreenBrightness(value/100);
                                 }
                             ),
                             Text("Choose Text", style: TextStyle(fontSize: 20)),
-                          PopupMenuItem(
-                              // onTap: (),
-                              child: Text("Current Text is \"bold\"", style: TextStyle(fontSize: 20))),
+                            PopupMenuItem(
+                                // onTap: (),
+                                child: Text("Current Text is \"bold\"", style: TextStyle(fontSize: 20)
+                                )
+                            )
                         ]
                     )
                 )
