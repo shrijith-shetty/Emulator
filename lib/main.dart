@@ -2,10 +2,6 @@
 import 'package:emulator/Gallery/gallery.dart';
 import 'package:emulator/calculator/calculator.dart';
 import 'package:emulator/camera/camera.dart';
-import 'package:emulator/settings/settingOption/aboutphone.dart';
-import 'package:emulator/settings/settingOption/addWallpaper.dart';
-import 'package:emulator/settings/settingOption/display.dart';
-import 'package:emulator/settings/settingOption/password.dart';
 import 'package:emulator/settings/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -40,7 +36,7 @@ class MyApp extends StatelessWidget
 
                 colorScheme: .fromSeed(seedColor: Colors.deepPurple)
             ),
-            home: LoginPage( /*title: "title"*/)
+            home: LoginPage(/*startIndex: 1,*//*title: "title"*/)
         );
     }
 }
@@ -85,46 +81,65 @@ class _MyHomePageState extends State<MyHomePage>
 
 Widget design(BuildContext context, String text)
 {
-    return Container(
-        width: 50,
-        height: 50,
+    late String icon_image;
+    if (text == 'a')
+    {
+        icon_image = 'assets/icon/calculator.jpg';
+    }
+    else if (text == 'b')
+    {
+        icon_image = 'assets/icon/download.jpg';
+    }
+    else if (text == 'c')
+    {
+        icon_image = 'assets/icon/camera.jpg';
+    }
+    else if (text == 'd')
+    {
+        icon_image = 'assets/icon/gallery.jpg';
+    }
 
-        decoration: BoxDecoration(
+    return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+            width: 50,
+            height: 50,
 
-            color: Colors.blue,
-            borderRadius: BorderRadius.circular(12)
-        ),
-        child: InkWell(
-            onTap: ()
-            {
-                if (text == 'a')
-                {
-                    Navigator.push(
-                        context, MaterialPageRoute(builder: (context) => Calculator(title: 'jai'))
-                    );
-                }
-                if (text == 'b')
-                {
-                    Navigator.push(
-                        context, MaterialPageRoute(builder: (context) => Settings())
-                    );
-                }
-                if (text == 'c')
-                {
-                    Navigator.push(
-                        context, MaterialPageRoute(builder: (context) => CameraPage())
-                    );
-                }
-                if (text == 'd')
-                {
-                    Navigator.push(
-                        context, MaterialPageRoute(builder: (context) => Gallery())
-                    );
-                }
+            child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                    onTap: ()
+                    {
+                        if (text == 'a')
+                        {
+                            Navigator.push(
+                                context, MaterialPageRoute(builder: (context) => Calculator(title: 'jai'))
+                            );
+                        }
+                        else if (text == 'b')
+                        {
+                            Navigator.push(
+                                context, MaterialPageRoute(builder: (context) => Settings())
+                            );
+                        }
+                        else if (text == 'c')
+                        {
+                            Navigator.push(
+                                context, MaterialPageRoute(builder: (context) => CameraPage())
+                            );
+                        }
+                        else if (text == 'd')
+                        {
+                            Navigator.push(
+                                context, MaterialPageRoute(builder: (context) => Gallery())
+                            );
+                        }
 
-            },
-            child: Center(child: Text(text, style: TextStyle(color: Colors.black, fontSize: 30)))
+                    },
+                    child: Center(child: Image.asset(icon_image, width: 49, height: 49, fit: BoxFit.cover))
+                )
+            )
+
         )
-
     );
 }

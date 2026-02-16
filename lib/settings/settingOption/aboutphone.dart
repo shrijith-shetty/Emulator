@@ -30,7 +30,7 @@ class _AboutPhoneState extends State<AboutPhone>
             appBar: AppBar(
                 backgroundColor: Colors.black,
                 leading: InkWell(
-                    onTap: () => Navigator.push(context,MaterialPageRoute(builder: (context)=>Settings())),
+                    onTap: () => Navigator.pop(context,MaterialPageRoute(builder: (context)=>Settings())),
                     child: const Icon(
                         Icons.phone_iphone_outlined,
                         size: 30,

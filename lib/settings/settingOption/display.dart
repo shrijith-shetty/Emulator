@@ -24,7 +24,7 @@ class DisplayPage extends State<DisplayClass>
                 leading: InkWell(
                     onTap: ()
                     {
-                        Navigator.push(
+                        Navigator.pop(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => Settings()

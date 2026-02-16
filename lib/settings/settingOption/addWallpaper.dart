@@ -59,7 +59,7 @@ class _AddWallPaper extends State<Addwallpaper>
                     ),
                     onTap: ()
                     {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => Settings()));
+                        Navigator.pop(context, MaterialPageRoute(builder: (context) => Settings()));
                     }
                 ),
                 title: Text("Wallpaper", style: TextStyle(fontSize: 30, color: Colors.white))

@@ -1,114 +1,127 @@
 import 'package:emulator/main.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
-// class _Password
-// {
-//   // String password = _LoginPageState();
-//   if(Password=="shrift")
-//   {
-//     Navigator.push(
-//         context, MaterialPageRoute(builder: (context)=>const MyHomePage(title: "title"))
-//     );
-//   }
-// }
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
 
 class LoginPage extends StatefulWidget
 {
     @override
-    State<StatefulWidget> createState() => _LoginPageState();
+    State<LoginPage> createState() => _LoginPageState();
 }
+
 class _LoginPageState extends State<LoginPage>
 {
+
+    final FlutterSecureStorage _storage = const FlutterSecureStorage();
+    static const String _passwordKey = 'app_password_hash';
+
     bool _obsecure = true;
-    TextEditingController Password = TextEditingController();
-    // _LoginPageState({required this.Password});
+    String errorMsg = "";
+
+    TextEditingController passwordController = TextEditingController();
+
+    // HASH FUNCTION
+    String _hashPassword(String password) 
+    {
+        var bytes = utf8.encode(password);
+        var digest = sha256.convert(bytes);
+        return digest.toString();
+    }
+
+    // VERIFY PASSWORD
+    Future<bool> _verifyPassword(String inputPassword) async
+    {
+        String? storedHash = await _storage.read(key: _passwordKey);
+
+        if (storedHash == null) return false;
+
+        return storedHash == _hashPassword(inputPassword);
+    }
+
+    Future<void> _login() async
+    {
+        bool isCorrect = await _verifyPassword(passwordController.text.trim());
+
+        if (isCorrect) 
+        {
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const MyHomePage(title: "Jai"))
+            );
+        } else 
+        {
+            setState(()
+                {
+                    errorMsg = "Wrong Password ❌";
+                });
+            passwordController.clear();
+        }
+    }
+
     @override
-    Widget build(BuildContext context)
+    Widget build(BuildContext context) 
     {
         return Scaffold(
             body: Center(
                 child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+
+                        // PASSWORD FIELD
                         Padding(
-                            padding: const EdgeInsets.only(left: 14.0, right: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: SizedBox(
-                                // width: 370,
-                                height: 50,
+                                height: 55,
                                 child: TextField(
-                                    controller: Password,
+                                    controller: passwordController,
                                     obscureText: _obsecure,
                                     decoration: InputDecoration(
                                         filled: true,
                                         labelText: "Password",
-
-                                        labelStyle: TextStyle(
-                                            color: Colors.red
+                                        prefixIcon: const Icon(Icons.password),
+                                        suffixIcon: IconButton(
+                                            onPressed: ()
+                                            {
+                                                setState(()
+                                                    {
+                                                        _obsecure = !_obsecure;
+                                                    });
+                                            },
+                                            icon: Icon(_obsecure
+                                                    ? CupertinoIcons.eye
+                                                    : CupertinoIcons.eye_slash)
                                         ),
-                                        prefixIcon: Icon(Icons.password, color: Colors.black, size: 20, fontWeight: FontWeight.bold),
-                                        suffixIcon: IconButton(onPressed: (){
-                                          setState(() {
-                                            _obsecure=!_obsecure;
-                                          });
-                                        }, icon: Icon(_obsecure?CupertinoIcons.eye:CupertinoIcons.eye_slash)),
-
                                         fillColor: Colors.red.shade100,
                                         border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(15),
-                                            borderSide: BorderSide(
-                                                color: Colors.blue,
-                                                width: 1.0
-                                            )
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-
-                                            borderRadius: BorderRadius.circular(15),
-                                            borderSide: BorderSide(
-                                                color: Colors.purple,
-                                                width: 2
-                                            )
-                                        )
+                                            borderRadius: BorderRadius.circular(15))
                                     )
                                 )
                             )
                         ),
-                        SizedBox(
-                            height: 30
+
+                        const SizedBox(height: 25),
+
+                        // SIGN IN BUTTON
+                        ElevatedButton(
+                            onPressed: _login,
+                            style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(150, 50)),
+                            child: const Text("Sign In")
                         ),
-                        ClipRRect(
-                            borderRadius: BorderRadiusGeometry.circular(30),
-                            child: Container(
-                                width: 150,
-                                height: 50,
 
-                                decoration: BoxDecoration(
-                                    color: Colors.blue
-                                ),
+                        const SizedBox(height: 20),
 
-                                child: InkWell(onTap: () =>
-                                    {
-
-                                        if(Password.text == "password")
-                                        {
-                                            Navigator.push(
-                                                context, MaterialPageRoute(builder: (context) => MyHomePage(title: "Jai"))
-                                            )
-                                        }
-                                        else
-                                        {
-                                            Password.clear()
-                                        }
-                                    }, child: Center(child: Text("Sign In", style: TextStyle(color: Colors.black, fontSize: 20)))
-
-                                )
-                            )
+                        Text(
+                            errorMsg,
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 16)
                         )
                     ]
-
                 )
             )
         );
     }
-
 }
