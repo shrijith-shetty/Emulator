@@ -1,127 +1,183 @@
 import 'package:emulator/main.dart';
+import 'package:emulator/settings/settingOption/password.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
+import 'database/password.dart';
 
 class LoginPage extends StatefulWidget
 {
-    @override
-    State<LoginPage> createState() => _LoginPageState();
-}
+    const LoginPage({super.key});
 
+    @override
+    State<StatefulWidget> createState() => _LoginPageState();
+}
 class _LoginPageState extends State<LoginPage>
 {
-
-    final FlutterSecureStorage _storage = const FlutterSecureStorage();
-    static const String _passwordKey = 'app_password_hash';
-
+    final PasswordStorage _authService = PasswordStorage();    
     bool _obsecure = true;
-    String errorMsg = "";
+    final TextEditingController _controller = TextEditingController();
 
-    TextEditingController passwordController = TextEditingController();
+    bool _isPassword = false;
+    String _message = "";
 
-    // HASH FUNCTION
-    String _hashPassword(String password) 
+    @override
+    void initState()
     {
-        var bytes = utf8.encode(password);
-        var digest = sha256.convert(bytes);
-        return digest.toString();
+        // TODO: implement initState
+        super.initState();
+        _checkPassword();
     }
 
-    // VERIFY PASSWORD
-    Future<bool> _verifyPassword(String inputPassword) async
+    Future<void> _checkPassword() async
     {
-        String? storedHash = await _storage.read(key: _passwordKey);
-
-        if (storedHash == null) return false;
-
-        return storedHash == _hashPassword(inputPassword);
+        bool exists = await _authService.isPasswordSet();
+        setState(()
+            {
+                _isPassword = exists;
+            });
     }
 
-    Future<void> _login() async
+    Future<void> _handleButton() async
     {
-        bool isCorrect = await _verifyPassword(passwordController.text.trim());
+        String input = _controller.text.trim();
 
-        if (isCorrect) 
-        {
-            Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const MyHomePage(title: "Jai"))
-            );
-        } else 
+        if (input.isEmpty)
         {
             setState(()
                 {
-                    errorMsg = "Wrong Password ❌";
+                    _message = "Password cannot be empty";
                 });
-            passwordController.clear();
+            return;
         }
+
+        if (!_isPassword)
+        {
+            await _authService.setPassword(input);
+            setState(()
+                {
+                    _message = "Password set successfully!";
+                    _isPassword = true;
+                });
+        }
+        else
+        {
+            bool correct = await _authService.verifyPassword(input);
+
+            if (correct)
+            {
+                setState(()
+                    {
+                        Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => MyHomePage(title: "Jai"))
+                        );
+
+                    });
+            } else
+            {
+                setState(()
+                    {
+                        _message = "Wrong Password";
+                    });
+            }
+        }
+        _controller.clear();
+    }
+    @override
+    void dispose()
+    {
+        _controller.dispose();
+        super.dispose();
     }
 
     @override
-    Widget build(BuildContext context) 
+    Widget build(BuildContext context)
     {
         return Scaffold(
             body: Center(
                 child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-
-                        // PASSWORD FIELD
                         Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.only(left: 14.0, right: 14),
                             child: SizedBox(
-                                height: 55,
+                                // width: 370,
+                                height: 50,
                                 child: TextField(
-                                    controller: passwordController,
+                                    controller: _controller,
                                     obscureText: _obsecure,
                                     decoration: InputDecoration(
                                         filled: true,
                                         labelText: "Password",
-                                        prefixIcon: const Icon(Icons.password),
-                                        suffixIcon: IconButton(
-                                            onPressed: ()
+
+                                        labelStyle: TextStyle(
+                                            color: Colors.red
+                                        ),
+                                        prefixIcon: Icon(Icons.password, color: Colors.black, size: 20, fontWeight: FontWeight.bold),
+                                        suffixIcon: IconButton(onPressed: ()
                                             {
                                                 setState(()
                                                     {
                                                         _obsecure = !_obsecure;
                                                     });
-                                            },
-                                            icon: Icon(_obsecure
-                                                    ? CupertinoIcons.eye
-                                                    : CupertinoIcons.eye_slash)
-                                        ),
+                                            }, icon: Icon(_obsecure ? CupertinoIcons.eye : CupertinoIcons.eye_slash)),
+
                                         fillColor: Colors.red.shade100,
                                         border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(15))
+                                            borderRadius: BorderRadius.circular(15),
+                                            borderSide: BorderSide(
+                                                color: Colors.blue,
+                                                width: 1.0
+                                            )
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+
+                                            borderRadius: BorderRadius.circular(15),
+                                            borderSide: BorderSide(
+                                                color: Colors.purple,
+                                                width: 2
+                                            )
+                                        )
                                     )
                                 )
                             )
                         ),
-
-                        const SizedBox(height: 25),
-
-                        // SIGN IN BUTTON
-                        ElevatedButton(
-                            onPressed: _login,
-                            style: ElevatedButton.styleFrom(
-                                minimumSize: const Size(150, 50)),
-                            child: const Text("Sign In")
+                        SizedBox(
+                            height: 30
                         ),
+                        ClipRRect(
+                            borderRadius: BorderRadiusGeometry.circular(30),
+                            child: Container(
+                                width: 150,
+                                height: 50,
 
-                        const SizedBox(height: 20),
+                                decoration: BoxDecoration(
+                                    color: Colors.blue
+                                ),
 
-                        Text(
-                            errorMsg,
-                            style: const TextStyle(
-                                color: Colors.red, fontSize: 16)
+                                child: InkWell(onTap: ()
+                                    {
+                                        _handleButton();
+                                        // if(_controller.text == "password")
+                                        // {
+                                        //     Navigator.push(
+                                        //         context, MaterialPageRoute(builder: (context) => MyHomePage(title: "Jai"))
+                                        //     )
+                                        // }
+                                        // else
+                                        // {
+                                        //     _controller.clear()
+                                        // }
+                                    }, child: Center(child: Text(_isPassword ? "Login" : "Sign In", style: TextStyle(color: Colors.black, fontSize: 20)))
+
+                                )
+                            )
                         )
                     ]
+
                 )
             )
         );
     }
+
 }
