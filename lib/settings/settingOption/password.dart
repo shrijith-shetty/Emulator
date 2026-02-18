@@ -1,195 +1,264 @@
 import 'package:emulator/settings/settings.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:emulator/database//password.dart';
 
 class Password extends StatefulWidget
 {
-  @override
-  State<StatefulWidget> createState() => PasswordPage();
+    @override
+    State<StatefulWidget> createState() => PasswordPage();
 
 }
 
 class PasswordPage extends State<Password>
 {
-  bool _obsecOld = true;
-  bool _obsecNew = true;
-  String errorMsg = "";
-  TextEditingController oldPassword = TextEditingController();
-  TextEditingController newPassword = TextEditingController();
-  @override
+    final PasswordStorage _authService = PasswordStorage();
+    late bool _isPassword;
+    bool _obsecOld = true;
+    bool _obsecNew = true;
+    String errorMsg = "";
+    TextEditingController oldPassword = TextEditingController();
+    TextEditingController newPassword = TextEditingController();
+    Future<void> isPassword() async
+    {
+        _isPassword = await _authService.isPasswordSet();
 
-  Widget build(BuildContext context)
-  {
+    }
 
-    return Scaffold(
-        appBar: AppBar(
-            backgroundColor: Colors.black,
-            leading: InkWell(
-                onTap:
-                    ()
+    Future<void> changePassword() async
+    {
+        String old_pass = oldPassword.text.trim();
+        String new_pass = newPassword.text.trim();
+
+        await isPassword();
+
+        if (_isPassword)
+        {
+
+            if (old_pass.isEmpty || new_pass.isEmpty)
+            {
+                setState(()
+                    {
+                        errorMsg = "Password should not be empty";
+                    });
+                return;
+            }
+
+            if (new_pass.length < 4)
+            {
+                setState(()
+                    {
+                        errorMsg = "Password should be greater than 4 digits";
+                    });
+                return;
+            }
+
+            if (old_pass == new_pass)
+            {
+                setState(()
+                    {
+                        errorMsg = "Old password should not be equal to new password";
+                    });
+                return;
+            }
+
+            bool isValid = await _authService.verifyPassword(old_pass);
+
+            if (!isValid)
+            {
+                setState(()
+                    {
+                        errorMsg = "Old password is incorrect";
+                    });
+                return;
+            }
+
+            await _authService.setPassword(new_pass);
+
+            setState(()
                 {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => Settings()));
-                },
-                child: Icon(Icons.password_outlined, size: 30, color: Colors.white)),
-            title: Text("Password", style: TextStyle(fontSize: 30, color: Colors.white))
-        ),
-        body: Container(
-            child: Center(
+                    errorMsg = "Password changed successfully";
+                });
 
-                child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      InkWell(
-                          onTap: ()
-                          {
-                            showModalBottomSheet(context: context, builder: (context)
-                            {
-                              return Container(
-                                  width: 500,
-                                  height: 800,
-                                  color: Colors.blue.shade50,
-                                  child: Column(
-                                    // crossAxisAlignment: CrossAxisAlignment.center,
-                                    // mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        SizedBox(
-                                            height: 40
-                                        ),
-                                        SizedBox(
-                                            width: 400,
-                                            child: TextField(
-                                                obscureText: true,
-                                                controller: oldPassword,
+        } else
+        {
 
-                                                decoration: InputDecoration(
-                                                    suffixIcon: IconButton(onPressed: ()
-                                                    {setState(()
-                                                    {
-                                                      _obsecOld = !_obsecOld;
-                                                    });
-                                                    },
-                                                        icon: Icon(
-                                                            _obsecOld ?
-                                                            CupertinoIcons.eye :
-                                                            CupertinoIcons.eye_slash
-                                                        )
-                                                    ),
-                                                    labelText: "Enter old Password",
-                                                    fillColor: Colors.grey,
-                                                    filled: true,
-                                                    prefixIcon: Icon(Icons.password_outlined),
-                                                    border: OutlineInputBorder(
-                                                        borderSide: BorderSide(color: Colors.amber, width: 3),
-                                                        borderRadius: BorderRadius.circular(20)
-                                                    )
+            if (new_pass.isEmpty)
+            {
+                setState(()
+                    {
+                        errorMsg = "Password should not be empty";
+                    });
+                return;
+            }
+
+            if (new_pass.length < 4)
+            {
+                setState(()
+                    {
+                        errorMsg = "Password should be greater than 4 digits";
+                    });
+                return;
+            }
+
+            await _authService.setPassword(new_pass);
+
+            setState(()
+                {
+                    errorMsg = "Password set successfully";
+                });
+        }
+    }
+
+    @override
+    void initState()
+    {
+        // TODO: implement initState
+        super.initState();
+        isPassword();
+    }
+
+    Widget build(BuildContext context)
+    {
+
+        return Scaffold(
+            appBar: AppBar(
+                backgroundColor: Colors.black,
+                leading: InkWell(
+                    onTap:
+                    ()
+                    {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => Settings()));
+                    },
+                    child: Icon(Icons.password_outlined, size: 30, color: Colors.white)),
+                title: Text("Password", style: TextStyle(fontSize: 30, color: Colors.white))
+            ),
+            body: Container(
+                child: Center(
+
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                            InkWell(
+                                onTap: ()
+                                {
+                                    showModalBottomSheet(context: context, builder: (context)
+                                        {
+                                            return Container(
+                                                width: 500,
+                                                height: 800,
+                                                color: Colors.blue.shade50,
+                                                child: Column(
+                                                    // crossAxisAlignment: CrossAxisAlignment.center,
+                                                    // mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                        SizedBox(
+                                                            height: 40
+                                                        ),
+                                                        SizedBox(
+                                                            width: 400,
+                                                            child: TextField(
+                                                                obscureText: true,
+                                                                controller: oldPassword,
+
+                                                                decoration: InputDecoration(
+                                                                    suffixIcon: IconButton(onPressed: ()
+                                                                        {setState(()
+                                                                                {
+                                                                                    _obsecOld = !_obsecOld;
+                                                                                });
+                                                                        },
+                                                                        icon: Icon(
+                                                                            _obsecOld ?
+                                                                                CupertinoIcons.eye :
+                                                                                CupertinoIcons.eye_slash
+                                                                        )
+                                                                    ),
+                                                                    labelText: "Enter old Password",
+                                                                    fillColor: Colors.grey,
+                                                                    filled: true,
+                                                                    prefixIcon: Icon(Icons.password_outlined),
+                                                                    border: OutlineInputBorder(
+                                                                        borderSide: BorderSide(color: Colors.amber, width: 3),
+                                                                        borderRadius: BorderRadius.circular(20)
+                                                                    )
+                                                                )
+                                                            )
+                                                        ),
+                                                        SizedBox(height: 30),
+                                                        SizedBox(
+                                                            width: 400,
+                                                            child: TextField(
+                                                                obscureText: true,
+                                                                controller: newPassword,
+                                                                decoration: InputDecoration(
+                                                                    suffixIcon: IconButton(onPressed: ()
+                                                                        {
+                                                                            setState(()
+                                                                                {
+                                                                                    _obsecNew = !_obsecNew;
+                                                                                });
+                                                                        }, icon: Icon(_obsecNew ? CupertinoIcons.eye : CupertinoIcons.eye_slash)),
+                                                                    labelText: "Enter old Password",
+                                                                    fillColor: Colors.grey,
+                                                                    filled: true,
+                                                                    prefixIcon: Icon(Icons.password_outlined),
+                                                                    border: OutlineInputBorder(
+                                                                        borderSide: BorderSide(color: Colors.amber, width: 3),
+                                                                        borderRadius: BorderRadius.circular(20)
+                                                                    )
+                                                                )
+                                                            )
+                                                        ),
+                                                        SizedBox(height: 30),
+                                                        InkWell(
+                                                            onTap: ()
+                                                            async
+                                                            {
+                                                                await changePassword();
+                                                                Navigator.pop(context);
+                                                                newPassword.clear();
+                                                                oldPassword.clear();
+                                                            },
+                                                            child: ClipRRect(
+                                                                borderRadius: BorderRadiusGeometry.circular(12),
+                                                                child: Container(
+                                                                    height: 50,
+                                                                    width: 100,
+                                                                    color: Colors.blue,
+                                                                    child: Center(
+                                                                        // padding: const EdgeInsets.all(10.0),
+                                                                        child: Text("Change")
+                                                                    )
+                                                                )
+                                                            )
+
+                                                        ),
+                                                        Text(errorMsg, style: TextStyle(fontSize: 20))
+                                                    ]
                                                 )
-                                            )
-                                        ),
-                                        SizedBox(height: 30),
-                                        SizedBox(
-                                            width: 400,
-                                            child: TextField(
-                                                obscureText: true,
-                                                controller: newPassword,
-                                                decoration: InputDecoration(
-                                                    suffixIcon: IconButton(onPressed: ()
-                                                    {
-                                                      setState(()
-                                                      {
-                                                        _obsecNew = !_obsecNew;
-                                                      });
-                                                    }, icon: Icon(_obsecNew ? CupertinoIcons.eye : CupertinoIcons.eye_slash)),
-                                                    labelText: "Enter old Password",
-                                                    fillColor: Colors.grey,
-                                                    filled: true,
-                                                    prefixIcon: Icon(Icons.password_outlined),
-                                                    border: OutlineInputBorder(
-                                                        borderSide: BorderSide(color: Colors.amber, width: 3),
-                                                        borderRadius: BorderRadius.circular(20)
-                                                    )
-                                                )
-                                            )
-                                        ),
-                                        SizedBox(height: 30),
-                                        InkWell(
-                                            onTap: ()
-                                            {
-                                              if (newPassword.text.length < 4)
-                                              {
-                                                // password should be more than 4 character
-                                                errorMsg = "New Password should be more than 4 letters";
-                                                Navigator.pop(context);
+                                            );
+                                        }
+                                    );
+                                },
+                                child: ClipRRect(
+                                    borderRadius: BorderRadiusGeometry.circular(12),
+                                    child: Container(
 
-                                              }
-                                              if (newPassword.text == oldPassword.text)
-                                              {
-                                                //old and new password are same
-                                                errorMsg = "New Password should be different from old password";
-                                                Navigator.pop(context);
-
-                                              }
-                                              else if (oldPassword.text != "password")
-                                              {
-                                                //password is incorrect
-                                                errorMsg = "Old password is incorrect";
-                                                Navigator.pop(context);
-
-                                              }
-                                              else if (oldPassword.text == "password" && oldPassword.text != newPassword.text)
-                                              {
-                                                //password changed successfully
-                                                errorMsg = "Password changed successfully";
-                                                Navigator.pop(context);
-
-                                              } else
-                                              {
-                                                //error
-                                                errorMsg = "Error";
-                                              }
-                                              setState(()
-                                              {
-
-                                              });
-                                            },
-                                            child: ClipRRect(
-                                                borderRadius: BorderRadiusGeometry.circular(12),
-                                                child: Container(
-                                                    height: 50,
-                                                    width: 100,
-                                                    color: Colors.blue,
-                                                    child: Center(
-                                                      // padding: const EdgeInsets.all(10.0),
-                                                        child: Text("Change")
-                                                    )
-                                                )
-                                            )
-
-                                        )
-
-                                      ]
-                                  )
-                              );
-                            }
-                            );
-                          },
-                          child: ClipRRect(
-                              borderRadius: BorderRadiusGeometry.circular(12),
-                              child: Container(
-
-                                  height: 50, width: 150, color: Colors.blue, child: Center(
-                                // padding: const EdgeInsets.only(left: 15.0, top: 5),
-                                  child: Text("Change Password")
-                              )))
-                      ),
-                      SizedBox(height: 30),
-                      Text(errorMsg, style: TextStyle(fontSize: 20, color: Colors.black))
-                    ]
+                                        height: 50, width: 150, color: Colors.blue, child: Center(
+                                            // padding: const EdgeInsets.only(left: 15.0, top: 5),
+                                            child: Text("Change Password")
+                                        )))
+                            ),
+                            SizedBox(height: 30),
+                            Text(errorMsg, style: TextStyle(fontSize: 20, color: Colors.black))
+                        ]
+                    )
                 )
             )
-        )
 
-    );
-  }
+        );
+    }
 
 }
 
