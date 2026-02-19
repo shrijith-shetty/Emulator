@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget
 
                 colorScheme: .fromSeed(seedColor: Colors.deepPurple)
             ),
-            home: LoginPage( /*startIndex: 1,*//*title: "title"*/)
+            home: Settings( /*startIndex: 1,*//*title: "title"*/)
         );
     }
 }
