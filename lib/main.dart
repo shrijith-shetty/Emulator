@@ -2,6 +2,7 @@
 import 'package:emulator/Gallery/gallery.dart';
 import 'package:emulator/calculator/calculator.dart';
 import 'package:emulator/camera/camera.dart';
+import 'package:emulator/settings/settingOption/addWallpaper.dart';
 import 'package:emulator/settings/settingOption/password.dart';
 import 'package:emulator/settings/settings.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +38,7 @@ class MyApp extends StatelessWidget
 
                 colorScheme: .fromSeed(seedColor: Colors.deepPurple)
             ),
-            home: LoginPage( /*startIndex: 1,*//*title: "title"*/)
+            home: Settings( /*startIndex: 1,*//*title: "title"*/)
         );
     }
 }

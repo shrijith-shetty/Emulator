@@ -5,7 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class StoreCurrentWallPaper
 {
     final FlutterSecureStorage _storage = const FlutterSecureStorage();
-    final String _key = 'app_password';
+    final String _key = 'app_wallpaper';
 
     Future<void> setWallpaper(String path) async
     {
@@ -13,6 +13,10 @@ class StoreCurrentWallPaper
             key: _key,
             value: path
         );
+    }
+    Future<String?> getWallpaper() async
+    {
+        return await _storage.read(key: _key);
     }
 
     Future<bool> isWallpaperset() async
