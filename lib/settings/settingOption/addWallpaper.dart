@@ -28,7 +28,7 @@ class _AddWallPaper extends State<Addwallpaper>
 
         if (!mounted) return;
 
-        if (path != null && path.isNotEmpty) 
+        if (path != null && path.isNotEmpty)
         {
             setState(()
                 {
@@ -51,6 +51,8 @@ class _AddWallPaper extends State<Addwallpaper>
                 currentWallpaper = path;
                 _isWallPaper = true;
             });
+
+        Navigator.pop(context, true);
     }
 
     // ================= OPEN GALLERY =================
@@ -59,7 +61,7 @@ class _AddWallPaper extends State<Addwallpaper>
     {
         final PermissionState ps = await PhotoManager.requestPermissionExtend();
 
-        if (!ps.isAuth) 
+        if (!ps.isAuth)
         {
             if (!mounted) return;
 
@@ -78,7 +80,7 @@ class _AddWallPaper extends State<Addwallpaper>
             type: RequestType.image
         );
 
-        if (albums.isEmpty) 
+        if (albums.isEmpty)
         {
             if (!mounted) return;
 
@@ -94,14 +96,14 @@ class _AddWallPaper extends State<Addwallpaper>
         for (var album in albums)
         {
             final count = await album.assetCountAsync;
-            if (count > 0) 
+            if (count > 0)
             {
                 selectedAlbum = album;
                 break;
             }
         }
 
-        if (selectedAlbum == null) 
+        if (selectedAlbum == null)
         {
             if (!mounted) return;
 
@@ -116,7 +118,7 @@ class _AddWallPaper extends State<Addwallpaper>
             size: 100
         );
 
-        if (photos.isEmpty) 
+        if (photos.isEmpty)
         {
             if (!mounted) return;
 
@@ -150,7 +152,7 @@ class _AddWallPaper extends State<Addwallpaper>
                                 ),
                                 builder: (context, snapshot)
                                 {
-                                    if (!snapshot.hasData) 
+                                    if (!snapshot.hasData)
                                     {
                                         return const SizedBox();
                                     }
@@ -160,12 +162,12 @@ class _AddWallPaper extends State<Addwallpaper>
                                         {
                                             final file = await photos[index].file;
 
-                                            if (file != null) 
+                                            if (file != null)
                                             {
                                                 await _handleButton(file.path);
                                             }
 
-                                            Navigator.pop(context);
+                                            // Navigator.pop(context);
                                         },
                                         child: Image.memory(snapshot.data!, fit: BoxFit.cover)
                                     );
@@ -179,14 +181,14 @@ class _AddWallPaper extends State<Addwallpaper>
     }
 
     @override
-    void initState() 
+    void initState()
     {
         super.initState();
         _checkPath();
     }
 
     @override
-    Widget build(BuildContext context) 
+    Widget build(BuildContext context)
     {
         return Scaffold(
             appBar: AppBar(
@@ -197,12 +199,17 @@ class _AddWallPaper extends State<Addwallpaper>
                         color: Colors.white,
                         size: 30
                     ),
-                    onTap: ()
+                    onTap: () async
                     {
-                        Navigator.pop(
+                        await Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => Settings())
-                        );
+                        ).then((_)
+                                {
+                                    //reload everything when coming back
+                                    (context as Element).markNeedsBuild();
+
+                                });
                     }
                 ),
                 title: const Text(
