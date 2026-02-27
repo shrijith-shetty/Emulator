@@ -1,176 +1,210 @@
-import 'package:emulator/Gallery/PhotoEdit/photoediting.dart';
-import 'package:emulator/Gallery/photoediting/photoediting.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:share_plus/share_plus.dart';
+import '../PhotoEdit/photoediting.dart';
 
-class ImageView extends StatefulWidget
-{
-    final int startIndex;
-    const ImageView({super.key, required this.startIndex});
+class ImageView extends StatefulWidget {
+  final List<AssetEntity> images;
+  final int initialIndex;
 
-    @override
-    State<StatefulWidget> createState() => ImageViewpage();
+  const ImageView({
+    super.key,
+    required this.images,
+    required this.initialIndex,
+  });
 
+  @override
+  State<ImageView> createState() => _ImageViewState();
 }
 
-class ImageViewpage extends State<ImageView>
-{
+class _ImageViewState extends State<ImageView> {
+  late PageController _controller;
+  late int _currentIndex;
 
-    List<String> imageList = [
-        "bird-8570950_1280.jpg",
-        "bird-9163532_1280.jpg",
-        "bird-9207453_1280.jpg",
-        "cows-9099843_1280.jpg",
-        "dahlia-8209085_1280.jpg",
-        "desert-2435404_1280.jpg",
-        "donkey-9035452_1280.jpg",
-        "flower-8559381_1280.jpg",
-        "full-moon-7471483_1280.jpg",
-        "goat-9017896_1280.jpg",
-        "grass-9130658_1280.jpg",
-        "grass-9197163_1280.jpg",
-        "horse-3114412_1280.jpg",
-        "horse-7993645_1280.jpg",
-        "istockphoto-844226534-2048x2048.webp",
-        "istockphoto-1301592082-1024x1024.jpg",
-        "leaves-8319393_1280.jpg",
-        "lion-tamarin-9171365_1280.jpg",
-        "mantis-8226119_1280.jpg",
-        "mountain-range-9842371_1280.webp",
-        "mountains-540115_1280.jpg",
-        "nature-9710930_1280.webp",
-        "polar-lights-5858656_1280.jpg",
-        "prairie-dog-9569847_1280.webp",
-        "reed-9540853_1280.webp",
-        "sea-6543041_1280.jpg",
-        "starfishes-1351559_1280.jpg",
-        "sunflowers-3792914_1280.jpg",
-        "water-3021652_1280.jpg",
-        "wave-7726187_1280.jpg"
-    ];
-    late int currentState;
-    @override
-    void initState()
-    {
-        // TODO: implement initState
-        super.initState();
-        currentState = widget.startIndex;
+  final Map<int, TransformationController> _zoomControllers = {};
+  final Map<int, double> _currentScales = {};
 
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _controller = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    for (var c in _zoomControllers.values) {
+      c.dispose();
     }
-    @override
+    _controller.dispose();
+    super.dispose();
+  }
 
-    Widget build(BuildContext context)
-    {
-        return Scaffold(
-            appBar: AppBar(
+  TransformationController _getZoomController(int index) {
+    return _zoomControllers.putIfAbsent(
+      index,
+          () => TransformationController(),
+    );
+  }
 
-            ),
-            body: Column(
+  void _handleDoubleTap(
+      TapDownDetails details, int index) {
+    final controller = _getZoomController(index);
+    final position = details.localPosition;
+    final scale = _currentScales[index] ?? 1.0;
+
+    if (scale == 1.0) {
+      controller.value = Matrix4.identity()
+        ..translate(-position.dx * 2, -position.dy * 2)
+        ..scale(3.0);
+
+      _currentScales[index] = 3.0;
+    } else {
+      controller.value = Matrix4.identity();
+      _currentScales[index] = 1.0;
+    }
+
+    setState(() {});
+  }
+
+  bool _isZoomed() {
+    final scale = _currentScales[_currentIndex] ?? 1.0;
+    return scale > 1.0;
+  }
+
+  Future<void> _shareImage() async {
+    final file = await widget.images[_currentIndex].file;
+    if (file != null) {
+      await Share.shareXFiles([XFile(file.path)]);
+    }
+  }
+
+  Future<void> _deleteImage() async {
+    final image = widget.images[_currentIndex];
+    await PhotoManager.editor.deleteWithIds([image.id]);
+
+    if (!mounted) return;
+    Navigator.pop(context);
+  }
+
+  Future<void> _editImage() async {
+    final file = await widget.images[_currentIndex].file;
+    if (file == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PhotoEdit(imagePath: file.path),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+
+          /// Swipe + Zoom + Double Tap
+          PageView.builder(
+            controller: _controller,
+            physics: _isZoomed()
+                ? const NeverScrollableScrollPhysics()
+                : const BouncingScrollPhysics(),
+            itemCount: widget.images.length,
+            onPageChanged: (index) {
+              setState(() => _currentIndex = index);
+            },
+            itemBuilder: (context, index) {
+              return FutureBuilder<File?>(
+                future: widget.images[index].file,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  final zoomController =
+                  _getZoomController(index);
+
+                  return GestureDetector(
+                    onDoubleTapDown: (details) =>
+                        _handleDoubleTap(details, index),
+                    onDoubleTap: () {},
+                    child: InteractiveViewer(
+                      transformationController:
+                      zoomController,
+                      minScale: 1,
+                      maxScale: 5,
+                      onInteractionEnd: (_) {
+                        final scale =
+                        zoomController.value
+                            .getMaxScaleOnAxis();
+
+                        if (scale <= 1.0) {
+                          _currentScales[index] = 1.0;
+                        } else {
+                          _currentScales[index] = scale;
+                        }
+
+                        setState(() {});
+                      },
+                      child: Center(
+                        child: Image.file(
+                          snapshot.data!,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+
+          /// Bottom Action Box (UNCHANGED)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  vertical: 15, horizontal: 30),
+              color: Colors.black.withOpacity(0.7),
+              child: Row(
+                mainAxisAlignment:
+                MainAxisAlignment.spaceBetween,
                 children: [
-                    SizedBox(
-                        height: 150
+                  IconButton(
+                    onPressed: _editImage,
+                    icon: const Icon(
+                      Icons.edit,
+                      color: Colors.white,
                     ),
-
-                    SizedBox(
-                        width: 400,
-                        height: 390,
-                        child: PageView.builder(
-                            controller: PageController(initialPage: currentState),
-                            itemCount: imageList.length,
-                            itemBuilder: (context, index)
-                            {
-                                return Image.asset(
-                                    "assets/Gallery/${imageList[index]}",
-                                    fit: BoxFit.cover
-                                );
-                            }
-                        )
+                  ),
+                  IconButton(
+                    onPressed: _shareImage,
+                    icon: const Icon(
+                      Icons.share,
+                      color: Colors.white,
                     ),
-
-                    SizedBox(
-                        height: 220
+                  ),
+                  IconButton(
+                    onPressed: _deleteImage,
+                    icon: const Icon(
+                      Icons.delete,
+                      color: Colors.red,
                     ),
-
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                            InkWell(
-                                onTap: ()
-                                {
-                                    Navigator.push(context, MaterialPageRoute(builder: (context) => PhotoEdit(currentIndex: 1,)));
-                                },
-                                child: Icon(Icons.edit)
-                            ),
-                            InkWell(
-
-                                onTap: ()
-                                {
-                                    showModalBottomSheet(context: context,
-                                        builder: (BuildContext context)
-                                        {
-                                            return SizedBox(
-                                                height: 100,
-                                                width: double.infinity,
-                                                child: Row(
-                                                    // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                    children: [
-                                                        Padding(
-                                                            padding: const EdgeInsets.only(left: 20.0),
-                                                            child: Container(
-
-                                                                child: ElevatedButton(
-                                                                    onPressed: ()
-                                                                    {
-                                                                    },
-                                                                    child: Image.asset(
-                                                                        'assets/icon/download.png',
-                                                                        width: 30,
-                                                                        height: 30,
-                                                                        fit: BoxFit.cover
-                                                                    )
-                                                                )
-                                                            )
-                                                        )
-
-                                                    ]
-                                                )
-                                            );
-                                        }
-                                    );
-                                },
-                                child: Icon(Icons.share)
-                            ),
-                            InkWell(
-
-                                onTap: ()
-                                {
-                                    showModalBottomSheet(context: context,
-                                        builder: (BuildContext context)
-                                        {
-                                            return SizedBox(
-                                                height: 100,
-                                                child: Padding(
-                                                    padding: const EdgeInsets.only(left: 10.0),
-                                                    child: Row(
-                                                        children: [
-                                                            Icon(Icons.delete),
-                                                            SizedBox(
-                                                                width: 10
-                                                            ),
-                                                            Text("Move to bin")
-                                                        ]
-                                                    )
-                                                )
-                                            );
-                                        }
-                                    );
-                                },
-                                child: Icon(Icons.delete)
-                            )
-                        ]
-                    )
-                ]
-            )
-        );
-    }
-
+                  ),
+                ],
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
 }

@@ -1,154 +1,93 @@
 import 'dart:io';
 import 'dart:typed_data';
-
-import 'package:emulator/settings/settings.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:emulator/database/wallpaper_storage.dart';
 
 class Addwallpaper extends StatefulWidget
 {
+    const Addwallpaper({super.key});
+
     @override
-    State<StatefulWidget> createState() => _AddWallPaper();
+    State<Addwallpaper> createState() => _AddWallPaper();
 }
 
 class _AddWallPaper extends State<Addwallpaper>
 {
-    final StoreCurrentWallPaper _authService = StoreCurrentWallPaper();
+    final StoreCurrentWallPaper _storage = StoreCurrentWallPaper();
 
-    bool _isWallPaper = false;
     String currentWallpaper = "";
 
-    // ================= LOAD SAVED WALLPAPER =================
-
-    Future<void> _checkPath() async
+    @override
+    void initState()
     {
-        String? path = await _authService.getWallpaper();
-
-        if (!mounted) return;
-
-        if (path != null && path.isNotEmpty)
-        {
-            setState(()
-                {
-                    currentWallpaper = path;
-                    _isWallPaper = true;
-                });
-        }
+        super.initState();
+        _loadCurrentWallpaper();
     }
 
-    // ================= SAVE WALLPAPER =================
-
-    Future<void> _handleButton(String path) async
+    Future<void> _loadCurrentWallpaper() async
     {
-        await _authService.setWallpaper(path);
-
+        String? path = await _storage.getWallpaper();
         if (!mounted) return;
 
         setState(()
             {
-                currentWallpaper = path;
-                _isWallPaper = true;
+                currentWallpaper = path ?? "";
             });
-
-        Navigator.pop(context, true);
     }
 
-    // ================= OPEN GALLERY =================
-
+    /// 🔥 OPEN GALLERY
     Future<void> _openGallery() async
     {
-        final PermissionState ps = await PhotoManager.requestPermissionExtend();
+        final PermissionState ps =
+            await PhotoManager.requestPermissionExtend();
 
-        if (!ps.isAuth)
+        if (!ps.isAuth && !ps.isLimited)
         {
-            if (!mounted) return;
-
             ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content: Text(
-                        'Gallery permission required. Please grant permission in settings.'
-                    )
+                    content: Text("Gallery permission required")
                 )
             );
-            PhotoManager.openSetting();
             return;
         }
 
-        List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
+        final albums = await PhotoManager.getAssetPathList(
             type: RequestType.image
         );
 
-        if (albums.isEmpty)
-        {
-            if (!mounted) return;
+        if (albums.isEmpty) return;
 
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('No photo albums found on device.'))
-            );
-            return;
-        }
+        final recent = albums.first;
 
-        // Select first album that actually has images
-        AssetPathEntity? selectedAlbum;
-
-        for (var album in albums)
-        {
-            final count = await album.assetCountAsync;
-            if (count > 0)
-            {
-                selectedAlbum = album;
-                break;
-            }
-        }
-
-        if (selectedAlbum == null)
-        {
-            if (!mounted) return;
-
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('No photos found in albums.'))
-            );
-            return;
-        }
-
-        List<AssetEntity> photos = await selectedAlbum.getAssetListPaged(
+        final photos = await recent.getAssetListPaged(
             page: 0,
             size: 100
         );
 
-        if (photos.isEmpty)
-        {
-            if (!mounted) return;
-
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('No photos available to display.'))
-            );
-            return;
-        }
-
-        if (!mounted) return;
-
         showModalBottomSheet(
             context: context,
             isScrollControlled: true,
-            builder: (context)
+            builder: (_)
             {
                 return SizedBox(
                     height: 500,
                     child: GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
-                            crossAxisSpacing: 5,
-                            mainAxisSpacing: 5
+                            crossAxisSpacing: 4,
+                            mainAxisSpacing: 4
                         ),
                         itemCount: photos.length,
                         itemBuilder: (context, index)
                         {
                             return FutureBuilder<Uint8List?>(
                                 future: photos[index].thumbnailDataWithSize(
-                                    const ThumbnailSize(200, 200)
+                                    const ThumbnailSize(300, 300)
                                 ),
                                 builder: (context, snapshot)
                                 {
@@ -160,16 +99,22 @@ class _AddWallPaper extends State<Addwallpaper>
                                     return InkWell(
                                         onTap: () async
                                         {
-                                            final file = await photos[index].file;
+                                            final file = await photos[index].originFile;
 
-                                            if (file != null)
+                                            if (file == null) 
                                             {
-                                                await _handleButton(file.path);
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text("Failed to load image"))
+                                                );
+                                                return;
                                             }
 
-                                            // Navigator.pop(context);
+                                            await _saveWallpaper(file);
                                         },
-                                        child: Image.memory(snapshot.data!, fit: BoxFit.cover)
+                                        child: Image.memory(
+                                            snapshot.data!,
+                                            fit: BoxFit.cover
+                                        )
                                     );
                                 }
                             );
@@ -180,11 +125,39 @@ class _AddWallPaper extends State<Addwallpaper>
         );
     }
 
-    @override
-    void initState()
-    {
-        super.initState();
-        _checkPath();
+    /// 🔥 SAVE WALLPAPER SAFELY
+    Future<void> _saveWallpaper(File originalFile) async {
+      final appDir = await getApplicationDocumentsDirectory();
+
+      try {
+        final oldPath = await _storage.getWallpaper();
+
+        if (oldPath != null) {
+          final oldFile = File(oldPath);
+
+          // 🔥 Only delete if file exists AND inside app directory
+          if (await oldFile.exists() &&
+              oldPath.startsWith(appDir.path)) {
+            await oldFile.delete();
+          }
+        }
+      } catch (e) {
+        debugPrint("Old wallpaper delete failed: $e");
+      }
+
+      // 🔥 Create new file in app storage
+      final fileName =
+          "wallpaper_${DateTime.now().millisecondsSinceEpoch}.jpg";
+
+      final newPath = "${appDir.path}/$fileName";
+
+      final newFile = await originalFile.copy(newPath);
+
+      await _storage.setWallpaper(newFile.path);
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true);
     }
 
     @override
@@ -193,61 +166,41 @@ class _AddWallPaper extends State<Addwallpaper>
         return Scaffold(
             appBar: AppBar(
                 backgroundColor: CupertinoColors.black,
-                leading: InkWell(
-                    child: const Icon(
-                        Icons.wallpaper_rounded,
-                        color: Colors.white,
-                        size: 30
-                    ),
-                    onTap: () async
-                    {
-                        await Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => Settings())
-                        ).then((_)
-                                {
-                                    //reload everything when coming back
-                                    (context as Element).markNeedsBuild();
-
-                                });
-                    }
-                ),
                 title: const Text(
                     "Wallpaper",
-                    style: TextStyle(fontSize: 30, color: Colors.white)
+                    style: TextStyle(fontSize: 24, color: Colors.white)
                 )
             ),
-            body: Container(
-                child: Column(
-                    children: [
-                        const Center(
-                            child: Text("Current Wallpaper", style: TextStyle(fontSize: 30))
+            body: Column(
+                children: [
+                    const SizedBox(height: 30),
+
+                    const Text(
+                        "Current Wallpaper",
+                        style: TextStyle(fontSize: 20)
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    currentWallpaper.isEmpty
+                        ? const Icon(Icons.image, size: 100)
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: Image.file(
+                                File(currentWallpaper),
+                                width: 200,
+                                height: 150,
+                                fit: BoxFit.cover
+                            )
                         ),
-                        const SizedBox(height: 100),
-                        InkWell(
-                            onTap: _openGallery,
-                            child: !_isWallPaper
-                                ? const Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: Icon(CupertinoIcons.add_circled, size: 30)
-                                )
-                                : ClipRRect(
-                                    borderRadius: BorderRadius.circular(15),
-                                    child: Container(
-                                        width: 200,
-                                        height: 150,
-                                        child: currentWallpaper.isEmpty
-                                            ? const Icon(Icons.image, size: 50)
-                                            : Image.file(
-                                                File(currentWallpaper),
-                                                fit: BoxFit.cover
-                                            )
-                                    )
-                                )
-                        ),
-                        const SizedBox(height: 100)
-                    ]
-                )
+
+                    const SizedBox(height: 40),
+
+                    ElevatedButton(
+                        onPressed: _openGallery,
+                        child: const Text("Choose From Gallery")
+                    )
+                ]
             )
         );
     }

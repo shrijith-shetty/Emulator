@@ -1,93 +1,253 @@
-import 'package:emulator/Gallery/image_view/image_view.dart';
-import 'package:flutter/cupertino.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:emulator/Gallery/image_view/image_view.dart';
 
-class Gallery extends StatefulWidget
-{
-    const Gallery({super.key});
+class Gallery extends StatefulWidget {
+  const Gallery({Key? key}) : super(key: key);
 
-    @override
-    State<StatefulWidget> createState() =>
-    GalleryPage();
+  @override
+  State<Gallery> createState() => _GalleryPageState();
 }
 
-class GalleryPage extends State<Gallery>
-{
-    List<String> imageList = [
-        "bird-8570950_1280.jpg",
-        "bird-9163532_1280.jpg",
-        "bird-9207453_1280.jpg",
-        "cows-9099843_1280.jpg",
-        "dahlia-8209085_1280.jpg",
-        "desert-2435404_1280.jpg",
-        "donkey-9035452_1280.jpg",
-        "flower-8559381_1280.jpg",
-        "full-moon-7471483_1280.jpg",
-        "goat-9017896_1280.jpg",
-        "grass-9130658_1280.jpg",
-        "grass-9197163_1280.jpg",
-        "horse-3114412_1280.jpg",
-        "horse-7993645_1280.jpg",
-        "istockphoto-844226534-2048x2048.webp",
-        "istockphoto-1301592082-1024x1024.jpg",
-        "leaves-8319393_1280.jpg",
-        "lion-tamarin-9171365_1280.jpg",
-        "mantis-8226119_1280.jpg",
-        "mountain-range-9842371_1280.webp",
-        "mountains-540115_1280.jpg",
-        "nature-9710930_1280.webp",
-        "polar-lights-5858656_1280.jpg",
-        "prairie-dog-9569847_1280.webp",
-        "reed-9540853_1280.webp",
-        "sea-6543041_1280.jpg",
-        "starfishes-1351559_1280.jpg",
-        "sunflowers-3792914_1280.jpg",
-        "water-3021652_1280.jpg",
-        "wave-7726187_1280.jpg"
-    ];
-    // late int itemCount = imageList.length;
-    @override
-    Widget build(BuildContext context)
-    {
-        return Scaffold(
-            appBar: AppBar(
-                backgroundColor: Colors.grey,
+class _GalleryPageState extends State<Gallery>
+    with WidgetsBindingObserver {
 
-                title: Row(
-                    children: [
-                        Icon(Icons.image),
-                        Text("Gallry")
-                    ]
-                )
-            ),
+  List<AssetEntity> _images = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
-            body: Container(
-                width: double.infinity,
-                height: double.infinity,
-                color: CupertinoColors.black,
+  // ================= INIT =================
 
-                child: GridView.builder(
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+    PhotoManager.addChangeCallback(_onGalleryChange);
+    PhotoManager.startChangeNotify();
 
-                        maxCrossAxisExtent: 150,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10
-                    ),
-                    itemCount: imageList.length,
-                    itemBuilder: ( context, int index)
-                    {
-                        return InkWell(
-                            onTap: (){
-                              Navigator.push(context,
-                                  MaterialPageRoute(builder: (context)=>ImageView(startIndex: index))
-                              );
-                            },
-                            child: Image.asset("assets/Gallery/${imageList[index]}", fit: BoxFit.cover));
-                    }
-                )
-            )
+    _initialize();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
+    PhotoManager.removeChangeCallback(_onGalleryChange);
+    PhotoManager.stopChangeNotify();
+
+    super.dispose();
+  }
+
+  // ================= AUTO REFRESH =================
+
+  void _onGalleryChange(MethodCall call) {
+    if (mounted) {
+      _loadImages();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _initialize();
+    }
+  }
+
+  // ================= PERMISSION =================
+
+  Future<void> _initialize() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final PermissionState permission =
+      await PhotoManager.getPermissionState(
+        requestOption: const PermissionRequestOption(),
+      );
+
+      PermissionState finalPermission = permission;
+
+      if (!permission.hasAccess) {
+        finalPermission =
+        await PhotoManager.requestPermissionExtend(
+          requestOption: const PermissionRequestOption(),
         );
+      }
+
+      if (!finalPermission.hasAccess) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+          "Permission denied.\nPlease allow photo access.";
+        });
+        return;
+      }
+
+      await _loadImages();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Error: $e";
+        });
+      }
+    }
+  }
+
+  // ================= LOAD IMAGES =================
+
+  Future<void> _loadImages() async {
+    try {
+      final albums = await PhotoManager.getAssetPathList(
+        type: RequestType.image,
+        onlyAll: false,
+        filterOption: FilterOptionGroup(
+          orders: [
+            const OrderOption(
+              type: OrderOptionType.createDate,
+              asc: false, // 🔥 NEWEST FIRST
+            ),
+          ],
+        ),
+      );
+
+      if (albums.isEmpty) {
+        setState(() {
+          _images = [];
+          _isLoading = false;
+          _errorMessage = "No albums found.";
+        });
+        return;
+      }
+
+      final photos = await albums.first.getAssetListPaged(
+        page: 0,
+        size: 500,
+      );
+
+      if (mounted) {
+        setState(() {
+          _images = photos;
+          _isLoading = false;
+          _errorMessage =
+          photos.isEmpty ? "No images found." : null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+          "Failed to load images: $e";
+        });
+      }
+    }
+  }
+
+  // ================= UI =================
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("Device Gallery"),
+        backgroundColor: Colors.grey[900],
+      ),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
     }
 
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment:
+            MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline,
+                  size: 70,
+                  color: Colors.grey),
+              const SizedBox(height: 20),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _initialize,
+                child: const Text("Retry"),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(8),
+      gridDelegate:
+      const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 5,
+        mainAxisSpacing: 5,
+      ),
+      itemCount: _images.length,
+      itemBuilder: (context, index) {
+        return FutureBuilder<Uint8List?>(
+          future: _images[index]
+              .thumbnailDataWithSize(
+            const ThumbnailSize(200, 200),
+          ),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Container(
+                color: Colors.grey[800],
+              );
+            }
+
+            return InkWell(
+              onTap: () async {
+                final file =
+                await _images[index].file;
+                if (file != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ImageView(
+                            images: _images,
+                            initialIndex: index,
+                          ),
+                    ),
+                  );
+                }
+              },
+              child: Image.memory(
+                snapshot.data!,
+                fit: BoxFit.cover,
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }

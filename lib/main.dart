@@ -1,23 +1,18 @@
 import 'dart:io';
-
 import 'package:emulator/Gallery/gallery.dart';
 import 'package:emulator/calculator/calculator.dart';
 import 'package:emulator/camera/camera.dart';
-import 'package:emulator/database/wallpaper_storage.dart';
-import 'package:emulator/settings/settingOption/addWallpaper.dart';
+import 'package:emulator/settings/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'database/wallpaper_storage.dart';
 
 void main()
 {
     runApp(
         ScreenUtilInit(
             designSize: const Size(360, 690),
-            minTextAdapt: true,
-            builder: (context, child)
-            {
-                return const MyApp();
-            }
+            builder: (_, __) => const MyApp()
         )
     );
 }
@@ -27,19 +22,18 @@ class MyApp extends StatelessWidget
     const MyApp({super.key});
 
     @override
-    Widget build(BuildContext context) 
+    Widget build(BuildContext context)
     {
-        return MaterialApp(
+        return const MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: const MyHomePage(title: "Emulator")
+            home: MyHomePage()
         );
     }
 }
 
 class MyHomePage extends StatefulWidget
 {
-    const MyHomePage({super.key, required this.title});
-    final String title;
+    const MyHomePage({super.key});
 
     @override
     State<MyHomePage> createState() => _MyHomePageState();
@@ -47,76 +41,118 @@ class MyHomePage extends StatefulWidget
 
 class _MyHomePageState extends State<MyHomePage>
 {
-    final StoreCurrentWallPaper _wallpaper = StoreCurrentWallPaper();
-
-    bool isWallpaper = false;
+    final StoreCurrentWallPaper _storage = StoreCurrentWallPaper();
     String currentWallpaper = "";
 
-    // ================= LOAD WALLPAPER =================
-
-    Future<void> loadWallpaper() async
-    {
-        String? path = await _wallpaper.getWallpaper();
-
-        if (!mounted) return;
-
-        if (path != null && path.isNotEmpty) 
-        {
-            setState(()
-                {
-                    currentWallpaper = path;
-                    isWallpaper = true;
-                });
-        } else 
-        {
-            setState(()
-                {
-                    isWallpaper = false;
-                });
-        }
-    }
-
     @override
-    void initState() 
+    void initState()
     {
         super.initState();
-        loadWallpaper();
+        _loadWallpaper();
+    }
+
+    Future<void> _loadWallpaper() async
+    {
+        final path = await _storage.getWallpaper();
+        if (!mounted) return;
+
+        setState(()
+            {
+                currentWallpaper = path ?? "";
+            });
+    }
+
+    /// 🔥 Always reload after returning
+    Future<void> _openSettings() async
+    {
+        await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => Settings())
+        );
+
+        await _loadWallpaper(); // always reload
     }
 
     @override
     Widget build(BuildContext context) 
     {
+        final size = MediaQuery.of(context).size;
+
         return Scaffold(
+            extendBodyBehindAppBar: true,
             appBar: AppBar(
-                backgroundColor: Colors.grey,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
                 title: const Text(
                     "Emulator",
-                    style: TextStyle(fontSize: 30)
+                    style: TextStyle(color: Colors.white, fontSize: 26)
                 )
             ),
             body: Stack(
                 children: [
-                    // ================= WALLPAPER =================
-                    !isWallpaper
-                        ? Container(color: Colors.green)
-                        : SizedBox.expand(
-                            child: Image.file(
-                                File(currentWallpaper),
-                                fit: BoxFit.cover
-                            )
-                        ),
 
-                    // ================= ICONS =================
-                    Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: Wrap(
-                            spacing: 20,
-                            children: [
-                                design("a"),
-                                design("b"),
-                                design("c"),
-                                design("d")
-                            ]
+                    /// 🔥 FORCE FULL SCREEN WALLPAPER
+                    SizedBox(
+                        width: size.width,
+                        height: size.height,
+                        child: currentWallpaper.isEmpty
+                            ? Container(color: Colors.black)
+                            : Image.file(
+                                File(currentWallpaper),
+                                fit: BoxFit.cover,   // 🔥 auto zoom + crop
+                                width: size.width,
+                                height: size.height
+                            )
+                    ),
+
+                    /// 🔥 Slight dark overlay
+                    Container(
+                        width: size.width,
+                        height: size.height,
+                        color: Colors.black.withOpacity(0.25)
+                    ),
+
+                    /// 🔥 APPS ON TOP
+                    SafeArea(
+                        child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Wrap(
+                                spacing: 25,
+                                runSpacing: 25,
+                                children: [
+                                    _appIcon(
+                                        context,
+                                        'assets/icon/calculator.jpg',
+                                        () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (_) =>
+                                                Calculator(title: "Calculator"))
+                                        )
+                                    ),
+                                    _appIcon(
+                                        context,
+                                        'assets/icon/download.jpg',
+                                        _openSettings
+                                    ),
+                                    _appIcon(
+                                        context,
+                                        'assets/icon/camera.jpg',
+                                        () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (_) => CameraPage())
+                                        )
+                                    ),
+                                    _appIcon(
+                                        context,
+                                        'assets/icon/gallery.jpg',
+                                        () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (_) => Gallery())
+                                        )
+                                    )
+                                ]
+                            )
                         )
                     )
                 ]
@@ -124,89 +160,25 @@ class _MyHomePageState extends State<MyHomePage>
         );
     }
 
-    // ================= ICON DESIGN =================
-
-    Widget design(String text) 
+    Widget _appIcon(
+        BuildContext context, String imagePath, VoidCallback onTap)
     {
-        late String iconImage;
-
-        if (text == 'a') 
-        {
-            iconImage = 'assets/icon/calculator.jpg';
-        } else if (text == 'b') 
-        {
-            iconImage = 'assets/icon/download.jpg';
-        } else if (text == 'c') 
-        {
-            iconImage = 'assets/icon/camera.jpg';
-        } else 
-        {
-            iconImage = 'assets/icon/gallery.jpg';
-        }
-
         return ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-                width: 50,
-                height: 50,
-                child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                        onTap: () async
-                        {
-                            if (text == 'a') 
-                            {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => Calculator(title: 'jai')
-                                    )
-                                );
-                            }
-
-                            else if (text == 'b') 
-                            {
-                                final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) => Addwallpaper()
-                                    )
-                                );
-
-                                // 🔥 THIS IS THE IMPORTANT PART
-                                if (result == true) 
-                                {
-                                    await loadWallpaper(); // reload wallpaper instantly
-                                }
-                            }
-
-                            else if (text == 'c') 
-                            {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => CameraPage()
-                                    )
-                                );
-                            }
-
-                            else if (text == 'd') 
-                            {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => Gallery()
-                                    )
-                                );
-                            }
-                        },
-                        child: Center(
-                            child: Image.asset(
-                                iconImage,
-                                width: 49,
-                                height: 49,
-                                fit: BoxFit.cover
-                            )
+            borderRadius: BorderRadius.circular(18),
+            child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                    onTap: onTap,
+                    child: Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            color: Colors.white.withOpacity(0.15)
+                        ),
+                        child: Image.asset(
+                            imagePath,
+                            fit: BoxFit.cover
                         )
                     )
                 )

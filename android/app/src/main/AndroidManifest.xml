@@ -1,46 +1,33 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.emulator">
 
-    <!-- Camera permission -->
-    <uses-permission android:name="android.permission.CAMERA"/>
     <!-- Android 13+ -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
-
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
     <!-- Android 12 and below -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
-    <!-- Storage permissions -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28"/>
-
-    <!-- Android 13+ Media permissions -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
-
-    <!-- Camera hardware feature (optional, not required) -->
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <!-- FIXED WRITE permission -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"
+        tools:replace="android:maxSdkVersion" />
 
     <application
-        android:name="${applicationName}"
         android:label="emulator"
-        android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true">
+        android:icon="@mipmap/ic_launcher">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
-
-            <!-- Flutter theme -->
-            <meta-data
-                android:name="io.flutter.embedding.android.NormalTheme"
-                android:resource="@style/NormalTheme"/>
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -51,8 +38,7 @@
 
         <meta-data
             android:name="flutterEmbedding"
-            android:value="2"/>
+            android:value="2" />
 
     </application>
-
 </manifest>
