@@ -1,7 +1,9 @@
+import 'package:emulator/animationLockScreen/LockScreenAnimation.dart';
 import 'package:emulator/main.dart';
 import 'package:emulator/settings/settingOption/password.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:rive/rive.dart';
 import 'database/password.dart';
 
 class LoginPage extends StatefulWidget
@@ -16,6 +18,7 @@ class _LoginPageState extends State<LoginPage>
     final PasswordStorage _authService = PasswordStorage();    
     bool _obsecure = true;
     final TextEditingController _controller = TextEditingController();
+    late SMITrigger _trigger;
 
     bool _isPassword = false;
     String _message = "";
@@ -69,7 +72,7 @@ class _LoginPageState extends State<LoginPage>
                     {
                         Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => MyHomePage(title: "Jai"))
+                            MaterialPageRoute(builder: (context) => LockscreenAnimation())
                         );
 
                     });
@@ -83,6 +86,17 @@ class _LoginPageState extends State<LoginPage>
         }
         _controller.clear();
     }
+
+    void _onRiverItt(Artboard artboard)
+    {
+        final controller = StateMachineController.fromArtboard(artboard, 'State Machine 1');
+        if (controller != null)
+        {
+            artboard.addController(controller);
+            _trigger = controller.findSMI('play') as SMITrigger;
+        }
+    }
+
     @override
     void dispose()
     {
@@ -111,7 +125,7 @@ class _LoginPageState extends State<LoginPage>
                                         labelText: "Password",
 
                                         labelStyle: TextStyle(
-                                            color: Colors.red
+                                            color: Colors.black
                                         ),
                                         prefixIcon: Icon(Icons.password, color: Colors.black, size: 20, fontWeight: FontWeight.bold),
                                         suffixIcon: IconButton(onPressed: ()
@@ -122,7 +136,7 @@ class _LoginPageState extends State<LoginPage>
                                                     });
                                             }, icon: Icon(_obsecure ? CupertinoIcons.eye : CupertinoIcons.eye_slash)),
 
-                                        fillColor: Colors.red.shade100,
+                                        fillColor: Colors.grey.shade100,
                                         border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(15),
                                             borderSide: BorderSide(
@@ -158,16 +172,7 @@ class _LoginPageState extends State<LoginPage>
                                 child: InkWell(onTap: ()
                                     {
                                         _handleButton();
-                                        // if(_controller.text == "password")
-                                        // {
-                                        //     Navigator.push(
-                                        //         context, MaterialPageRoute(builder: (context) => MyHomePage(title: "Jai"))
-                                        //     )
-                                        // }
-                                        // else
-                                        // {
-                                        //     _controller.clear()
-                                        // }
+
                                     }, child: Center(child: Text(_isPassword ? "Login" : "Sign In", style: TextStyle(color: Colors.black, fontSize: 20)))
 
                                 )

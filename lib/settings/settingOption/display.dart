@@ -66,34 +66,51 @@ class DisplayPage extends State<DisplayClass>
                     style: TextStyle(fontSize: 24, color: Colors.white)
                 )
             ),
-            body: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                        const Text(
-                            "Brightness",
-                            style: TextStyle(fontSize: 20)
-                        ),
-                        const SizedBox(height: 20),
-
-                        Slider(
-                            value: brightness,
-                            min: 0.0,
-                            max: 1.0,
-                            divisions: 100,
-                            label: (brightness * 100).toInt().toString(),
-                            onChanged: (value)
-                            {
-                                setState(()
-                                    {
-                                        brightness = value;
-                                    });
-                                _setBrightness(value);
-                            }
+            body: Column(
+              children: [
+                Expanded(
+                    child: Center(
+                        child: SizedBox(
+                            height: 300,
+                            child: RotatedBox(
+                                quarterTurns: -1, // Makes slider vertical
+                                child: SliderTheme(
+                                    data: SliderTheme.of(context).copyWith(
+                                        trackHeight: 10,
+                                        activeTrackColor: Colors.blue,
+                                        inactiveTrackColor: Colors.grey.shade300,
+                                        thumbColor: Colors.blue,
+                                        overlayColor: Colors.blue.withOpacity(0.2),
+                                        thumbShape:
+                                        const RoundSliderThumbShape(enabledThumbRadius: 14.0),
+                                        overlayShape:
+                                        const RoundSliderOverlayShape(overlayRadius: 28.0),
+                                        valueIndicatorColor: Colors.blue,
+                                        valueIndicatorTextStyle:
+                                        const TextStyle(color: Colors.white),
+                                        showValueIndicator: ShowValueIndicator.always
+                                    ),
+                                    child: Slider(
+                                        value: brightness,
+                                        min: 0.0,
+                                        max: 1.0,
+                                        divisions: 100,
+                                        label: "${(brightness * 100).toInt()}%",
+                                        onChanged: (value)
+                                        {
+                                            setState(()
+                                                {
+                                                    brightness = value;
+                                                });
+                                            _setBrightness(value);
+                                        }
+                                    )
+                                )
+                            )
                         )
-                    ]
-                )
+                    )
+                ),
+              ],
             )
         );
     }

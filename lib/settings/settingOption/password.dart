@@ -14,6 +14,7 @@ class PasswordPage extends State<Password>
 {
     final PasswordStorage _authService = PasswordStorage();
     late bool _isPassword;
+    bool _isEnabled = true;
     bool _obsecOld = true;
     bool _obsecNew = true;
     String errorMsg = "";
@@ -139,6 +140,16 @@ class PasswordPage extends State<Password>
                     child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                            Switch(value: _isEnabled, onChanged: (value)
+                                {
+                                    setState(()
+                                        {
+                                            value = _isEnabled;
+                                        });
+                                }),
+                            SizedBox(
+                                height: 30
+                            ),
                             InkWell(
                                 onTap: ()
                                 {

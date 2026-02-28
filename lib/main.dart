@@ -1,8 +1,14 @@
 import 'dart:io';
 import 'package:emulator/Gallery/gallery.dart';
+import 'package:emulator/animationLockScreen/LockScreenAnimation.dart';
 import 'package:emulator/calculator/calculator.dart';
 import 'package:emulator/camera/camera.dart';
+import 'package:emulator/login_page.dart';
 import 'package:emulator/settings/settings.dart';
+import 'package:emulator/spashScreen/calculator.dart';
+import 'package:emulator/spashScreen/camera.dart';
+import 'package:emulator/spashScreen/gallery.dart';
+import 'package:emulator/spashScreen/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'database/wallpaper_storage.dart';
@@ -24,9 +30,9 @@ class MyApp extends StatelessWidget
     @override
     Widget build(BuildContext context)
     {
-        return const MaterialApp(
+        return MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: MyHomePage()
+            home: LoginPage()
         );
     }
 }
@@ -67,14 +73,14 @@ class _MyHomePageState extends State<MyHomePage>
     {
         await Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => Settings())
+            MaterialPageRoute(builder: (_) => SpashScreenSettings())
         );
 
         await _loadWallpaper(); // always reload
     }
 
     @override
-    Widget build(BuildContext context) 
+    Widget build(BuildContext context)
     {
         final size = MediaQuery.of(context).size;
 
@@ -127,7 +133,7 @@ class _MyHomePageState extends State<MyHomePage>
                                             context,
                                             MaterialPageRoute(
                                                 builder: (_) =>
-                                                Calculator(title: "Calculator"))
+                                                SpashScreenCalculator())
                                         )
                                     ),
                                     _appIcon(
@@ -140,7 +146,7 @@ class _MyHomePageState extends State<MyHomePage>
                                         'assets/icon/camera.jpg',
                                         () => Navigator.push(
                                             context,
-                                            MaterialPageRoute(builder: (_) => CameraPage())
+                                            MaterialPageRoute(builder: (_) => SpashScreenCamera())
                                         )
                                     ),
                                     _appIcon(
@@ -148,7 +154,7 @@ class _MyHomePageState extends State<MyHomePage>
                                         'assets/icon/gallery.jpg',
                                         () => Navigator.push(
                                             context,
-                                            MaterialPageRoute(builder: (_) => Gallery())
+                                            MaterialPageRoute(builder: (_) => SpashScreenGallery())
                                         )
                                     )
                                 ]
