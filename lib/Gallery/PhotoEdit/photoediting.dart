@@ -1,15 +1,25 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class Photoediting extends StatefulWidget
+class PhotoEdit extends StatefulWidget
 {
+    late int currentIndex;
+    PhotoEdit({super.key, required this.currentIndex});
+
     @override
     State<StatefulWidget> createState() => PhotoEditingPage();
 
 }
 
-class PhotoEditingPage extends State<Photoediting>
+class PhotoEditingPage extends State<PhotoEdit>
 {
+    late int initialIndex;
+    @override
+    void initState()
+    {
+        // TODO: implement initState
+        super.initState();
+        initialIndex = widget.currentIndex;
+    }
     List<String> imageList = [
         "bird-8570950_1280.jpg",
         "bird-9163532_1280.jpg",
@@ -43,17 +53,34 @@ class PhotoEditingPage extends State<Photoediting>
         "wave-7726187_1280.jpg"
     ];
 
+    get selectedIndex => null;
+
     @override
-    Widget build(BuildContext context) 
+    Widget build(BuildContext context)
     {
         return Scaffold(
-          appBar: AppBar(
-            title: Row(
-              children: [
-                // Icon(CupertinoIcons.xmark)
-              ],
+            appBar: AppBar(
+                title: Row(
+                    children: [
+                    // Icon(CupertinoIcons.xmark)
+                    ]
+                )
             ),
-          ),
+            body: Column(
+                children: [
+                    SizedBox(
+                        width: 400,
+                        height: 400,
+                        child: Image.asset(
+                            'assets/Gallery/${imageList[initialIndex]}',
+                            width: 300,
+                            height: 300,
+                            fit: BoxFit.cover
+                        )
+                    )
+
+                ]
+            )
         );
     }
 

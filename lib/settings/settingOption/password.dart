@@ -1,6 +1,7 @@
 import 'package:emulator/settings/settings.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:emulator/database//password.dart';
 
 class Password extends StatefulWidget
 {
@@ -11,12 +12,111 @@ class Password extends StatefulWidget
 
 class PasswordPage extends State<Password>
 {
+    final PasswordStorage _authService = PasswordStorage();
+    late bool _isPassword;
     bool _obsecOld = true;
     bool _obsecNew = true;
     String errorMsg = "";
     TextEditingController oldPassword = TextEditingController();
     TextEditingController newPassword = TextEditingController();
+    Future<void> isPassword() async
+    {
+        _isPassword = await _authService.isPasswordSet();
+
+    }
+
+    Future<void> changePassword() async
+    {
+        String old_pass = oldPassword.text.trim();
+        String new_pass = newPassword.text.trim();
+
+        await isPassword();
+
+        if (_isPassword)
+        {
+
+            if (old_pass.isEmpty || new_pass.isEmpty)
+            {
+                setState(()
+                    {
+                        errorMsg = "Password should not be empty";
+                    });
+                return;
+            }
+
+            if (new_pass.length < 4)
+            {
+                setState(()
+                    {
+                        errorMsg = "Password should be greater than 4 digits";
+                    });
+                return;
+            }
+
+            if (old_pass == new_pass)
+            {
+                setState(()
+                    {
+                        errorMsg = "Old password should not be equal to new password";
+                    });
+                return;
+            }
+
+            bool isValid = await _authService.verifyPassword(old_pass);
+
+            if (!isValid)
+            {
+                setState(()
+                    {
+                        errorMsg = "Old password is incorrect";
+                    });
+                return;
+            }
+
+            await _authService.setPassword(new_pass);
+
+            setState(()
+                {
+                    errorMsg = "Password changed successfully";
+                });
+
+        } else
+        {
+
+            if (new_pass.isEmpty)
+            {
+                setState(()
+                    {
+                        errorMsg = "Password should not be empty";
+                    });
+                return;
+            }
+
+            if (new_pass.length < 4)
+            {
+                setState(()
+                    {
+                        errorMsg = "Password should be greater than 4 digits";
+                    });
+                return;
+            }
+
+            await _authService.setPassword(new_pass);
+
+            setState(()
+                {
+                    errorMsg = "Password set successfully";
+                });
+        }
+    }
+
     @override
+    void initState()
+    {
+        // TODO: implement initState
+        super.initState();
+        isPassword();
+    }
 
     Widget build(BuildContext context)
     {
@@ -67,7 +167,7 @@ class PasswordPage extends State<Password>
                                                                                 {
                                                                                     _obsecOld = !_obsecOld;
                                                                                 });
-                                                                        }, 
+                                                                        },
                                                                         icon: Icon(
                                                                             _obsecOld ?
                                                                                 CupertinoIcons.eye :
@@ -113,43 +213,12 @@ class PasswordPage extends State<Password>
                                                         SizedBox(height: 30),
                                                         InkWell(
                                                             onTap: ()
+                                                            async
                                                             {
-                                                                if (newPassword.text.length < 4)
-                                                                {
-                                                                    // password should be more than 4 character
-                                                                    errorMsg = "New Password should be more than 4 letters";
-                                                                    Navigator.pop(context);
-
-                                                                }
-                                                                if (newPassword.text == oldPassword.text)
-                                                                {
-                                                                    //old and new password are same
-                                                                    errorMsg = "New Password should be different from old password";
-                                                                    Navigator.pop(context);
-
-                                                                }
-                                                                else if (oldPassword.text != "password")
-                                                                {
-                                                                    //password is incorrect
-                                                                    errorMsg = "Old password is incorrect";
-                                                                    Navigator.pop(context);
-
-                                                                }
-                                                                else if (oldPassword.text == "password" && oldPassword.text != newPassword.text)
-                                                                {
-                                                                    //password changed successfully
-                                                                    errorMsg = "Password changed successfully";
-                                                                    Navigator.pop(context);
-
-                                                                } else
-                                                                {
-                                                                    //error
-                                                                    errorMsg = "Error";
-                                                                }
-                                                                setState(()
-                                                                    {
-
-                                                                    });
+                                                                await changePassword();
+                                                                Navigator.pop(context);
+                                                                newPassword.clear();
+                                                                oldPassword.clear();
                                                             },
                                                             child: ClipRRect(
                                                                 borderRadius: BorderRadiusGeometry.circular(12),
@@ -164,8 +233,8 @@ class PasswordPage extends State<Password>
                                                                 )
                                                             )
 
-                                                        )
-
+                                                        ),
+                                                        Text(errorMsg, style: TextStyle(fontSize: 20))
                                                     ]
                                                 )
                                             );
@@ -192,53 +261,3 @@ class PasswordPage extends State<Password>
     }
 
 }
-
-// showModalBottomSheet(context: context, builder: (context)
-//     {
-//         return Container(
-//             width: 500,
-//             height: 400,
-//             color: Colors.blue,
-//             child: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.center,
-//                 mainAxisAlignment: MainAxisAlignment.center,
-//                 children: [
-//                     Center(
-//                         child: TextField(
-//
-//                             controller: oldPassword,
-//
-//                             decoration: InputDecoration(
-//                                 hintText: "Enter old Password",
-//                                 fillColor: Colors.grey,
-//                                 filled: true
-//
-//                             )
-//                         )
-//                     ),
-//                     SizedBox(height: 55),
-//                     Center(child: TextField())
-//                 ]
-//             )
-//         );
-//     });
-
-//
-// PopupMenuItem(
-// child: SizedBox(
-// height: 400,
-// width: 400,
-// child: TextField(
-// controller: oldPassword,
-//
-// decoration: InputDecoration(
-// border: OutlineInputBorder(
-// borderRadius: BorderRadius.circular(12)
-// ),
-// hintText: "Enter old Password",
-// fillColor: Colors.grey,
-// filled: true
-// )
-// )
-// )
-// );

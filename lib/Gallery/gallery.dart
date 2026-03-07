@@ -1,3 +1,4 @@
+import 'package:emulator/Gallery/image_view/image_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -76,7 +77,13 @@ class GalleryPage extends State<Gallery>
                     itemCount: imageList.length,
                     itemBuilder: ( context, int index)
                     {
-                        return Image.asset("assets/Gallery/${imageList[index]}", fit: BoxFit.cover);
+                        return InkWell(
+                            onTap: (){
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (context)=>ImageView(startIndex: index))
+                              );
+                            },
+                            child: Image.asset("assets/Gallery/${imageList[index]}", fit: BoxFit.cover));
                     }
                 )
             )

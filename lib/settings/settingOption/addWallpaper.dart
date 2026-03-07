@@ -1,50 +1,192 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:emulator/settings/settings.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:emulator/database/wallpaper_storage.dart';
 
 class Addwallpaper extends StatefulWidget
 {
     @override
-    State<StatefulWidget> createState() =>
-    _AddWallPaper();
+    State<StatefulWidget> createState() => _AddWallPaper();
 }
 
 class _AddWallPaper extends State<Addwallpaper>
 {
-    List<String> imageList = [
-        "bird-8570950_1280.jpg",
-        "bird-9163532_1280.jpg",
-        "bird-9207453_1280.jpg",
-        "cows-9099843_1280.jpg",
-        "dahlia-8209085_1280.jpg",
-        "desert-2435404_1280.jpg",
-        "donkey-9035452_1280.jpg",
-        "flower-8559381_1280.jpg",
-        "full-moon-7471483_1280.jpg",
-        "goat-9017896_1280.jpg",
-        "grass-9130658_1280.jpg",
-        "grass-9197163_1280.jpg",
-        "horse-3114412_1280.jpg",
-        "horse-7993645_1280.jpg",
-        "istockphoto-844226534-2048x2048.webp",
-        "istockphoto-1301592082-1024x1024.jpg",
-        "leaves-8319393_1280.jpg",
-        "lion-tamarin-9171365_1280.jpg",
-        "mantis-8226119_1280.jpg",
-        "mountain-range-9842371_1280.webp",
-        "mountains-540115_1280.jpg",
-        "nature-9710930_1280.webp",
-        "polar-lights-5858656_1280.jpg",
-        "prairie-dog-9569847_1280.webp",
-        "reed-9540853_1280.webp",
-        "sea-6543041_1280.jpg",
-        "starfishes-1351559_1280.jpg",
-        "sunflowers-3792914_1280.jpg",
-        "water-3021652_1280.jpg",
-        "wave-7726187_1280.jpg"
-    ];
-    String currentWallpaper = "assets/Gallery/flower-8559381_1280.jpg";
+    final StoreCurrentWallPaper _authService = StoreCurrentWallPaper();
+
+    bool _isWallPaper = false;
+    String currentWallpaper = "";
+
+    // ================= LOAD SAVED WALLPAPER =================
+
+    Future<void> _checkPath() async
+    {
+        String? path = await _authService.getWallpaper();
+
+        if (!mounted) return;
+
+        if (path != null && path.isNotEmpty)
+        {
+            setState(()
+                {
+                    currentWallpaper = path;
+                    _isWallPaper = true;
+                });
+        }
+    }
+
+    // ================= SAVE WALLPAPER =================
+
+    Future<void> _handleButton(String path) async
+    {
+        await _authService.setWallpaper(path);
+
+        if (!mounted) return;
+
+        setState(()
+            {
+                currentWallpaper = path;
+                _isWallPaper = true;
+            });
+
+        Navigator.pop(context, true);
+    }
+
+    // ================= OPEN GALLERY =================
+
+    Future<void> _openGallery() async
+    {
+        final PermissionState ps = await PhotoManager.requestPermissionExtend();
+
+        if (!ps.isAuth)
+        {
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text(
+                        'Gallery permission required. Please grant permission in settings.'
+                    )
+                )
+            );
+            PhotoManager.openSetting();
+            return;
+        }
+
+        List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
+            type: RequestType.image
+        );
+
+        if (albums.isEmpty)
+        {
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No photo albums found on device.'))
+            );
+            return;
+        }
+
+        // Select first album that actually has images
+        AssetPathEntity? selectedAlbum;
+
+        for (var album in albums)
+        {
+            final count = await album.assetCountAsync;
+            if (count > 0)
+            {
+                selectedAlbum = album;
+                break;
+            }
+        }
+
+        if (selectedAlbum == null)
+        {
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No photos found in albums.'))
+            );
+            return;
+        }
+
+        List<AssetEntity> photos = await selectedAlbum.getAssetListPaged(
+            page: 0,
+            size: 100
+        );
+
+        if (photos.isEmpty)
+        {
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No photos available to display.'))
+            );
+            return;
+        }
+
+        if (!mounted) return;
+
+        showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context)
+            {
+                return SizedBox(
+                    height: 500,
+                    child: GridView.builder(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 5,
+                            mainAxisSpacing: 5
+                        ),
+                        itemCount: photos.length,
+                        itemBuilder: (context, index)
+                        {
+                            return FutureBuilder<Uint8List?>(
+                                future: photos[index].thumbnailDataWithSize(
+                                    const ThumbnailSize(200, 200)
+                                ),
+                                builder: (context, snapshot)
+                                {
+                                    if (!snapshot.hasData)
+                                    {
+                                        return const SizedBox();
+                                    }
+
+                                    return InkWell(
+                                        onTap: () async
+                                        {
+                                            final file = await photos[index].file;
+
+                                            if (file != null)
+                                            {
+                                                await _handleButton(file.path);
+                                            }
+
+                                            // Navigator.pop(context);
+                                        },
+                                        child: Image.memory(snapshot.data!, fit: BoxFit.cover)
+                                    );
+                                }
+                            );
+                        }
+                    )
+                );
+            }
+        );
+    }
+
+    @override
+    void initState()
+    {
+        super.initState();
+        _checkPath();
+    }
+
     @override
     Widget build(BuildContext context)
     {
@@ -52,90 +194,61 @@ class _AddWallPaper extends State<Addwallpaper>
             appBar: AppBar(
                 backgroundColor: CupertinoColors.black,
                 leading: InkWell(
-                    child: Icon(
+                    child: const Icon(
                         Icons.wallpaper_rounded,
                         color: Colors.white,
                         size: 30
                     ),
-                    onTap: ()
+                    onTap: () async
                     {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => Settings()));
+                        await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => Settings())
+                        ).then((_)
+                                {
+                                    //reload everything when coming back
+                                    (context as Element).markNeedsBuild();
+
+                                });
                     }
                 ),
-                title: Text("Wallpaper", style: TextStyle(fontSize: 30, color: Colors.white))
+                title: const Text(
+                    "Wallpaper",
+                    style: TextStyle(fontSize: 30, color: Colors.white)
+                )
             ),
             body: Container(
                 child: Column(
-                    // crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                        Center(child: Text("Current Wallpaper", style: TextStyle(fontSize: 30))),
-
-                        InkWell(
-                            onTap: ()
-                            {
-                                showModalBottomSheet(context: context,
-                                    isDismissible: true,
-                                    enableDrag: true,
-                                    builder: (BuildContext context)
-                                    {
-                                        return SizedBox(
-
-                                            height: 400,
-                                            width: double.infinity,
-                                            child: GridView.builder(
-                                                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-
-                                                    maxCrossAxisExtent: 150,
-                                                    crossAxisSpacing: 10,
-                                                    mainAxisSpacing: 10
-
-                                                ),
-                                                itemCount: imageList.length,
-                                                itemBuilder: (context, index)
-                                                {
-                                                    return InkWell(
-                                                        onTap: ()
-                                                        {
-                                                            currentWallpaper = "assets/Gallery/${imageList[index]}";
-
-                                                            setState(()
-                                                                {
-                                                                    Navigator.pop(context);
-                                                                });
-                                                        },
-                                                        child: Image.asset("assets/Gallery/${imageList[index]}", fit: BoxFit.cover));
-                                                }
-                                            )
-                                        );
-                                    });
-                            },
-                            child: InkWell(
-
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(15),
-                                  child: Container(
-                                      width: 200,
-                                      height: 150,
-                                      // color: Colors.blue,
-                                      // decoration: BoxDecoration(
-                                      //     borderRadius: BorderRadius.circular(35)
-                                      //     // boxShadow:
-                                      // ),
-                                      child: Image.asset(currentWallpaper,
-                                          fit: BoxFit.cover
-                                      )
-                                  ),
-                                )
-                            )
+                        const Center(
+                            child: Text("Current Wallpaper", style: TextStyle(fontSize: 30))
                         ),
-                        SizedBox(height: 100)
-
+                        const SizedBox(height: 100),
+                        InkWell(
+                            onTap: _openGallery,
+                            child: !_isWallPaper
+                                ? const Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: Icon(CupertinoIcons.add_circled, size: 30)
+                                )
+                                : ClipRRect(
+                                    borderRadius: BorderRadius.circular(15),
+                                    child: Container(
+                                        width: 200,
+                                        height: 150,
+                                        child: currentWallpaper.isEmpty
+                                            ? const Icon(Icons.image, size: 50)
+                                            : Image.file(
+                                                File(currentWallpaper),
+                                                fit: BoxFit.cover
+                                            )
+                                    )
+                                )
+                        ),
+                        const SizedBox(height: 100)
                     ]
                 )
-
             )
         );
     }
-
 }
-
