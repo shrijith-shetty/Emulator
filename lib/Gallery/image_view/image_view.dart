@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:share_plus/share_plus.dart';
@@ -26,39 +27,23 @@ class _ImageViewState extends State<ImageView>
     late PageController _controller;
     late int _currentIndex;
 
-    List<File?> _files = [];
-    bool _isLoading = true;
-
     @override
-    void initState()
+    void initState() 
     {
         super.initState();
         _currentIndex = widget.initialIndex;
         _controller = PageController(initialPage: _currentIndex);
-        _loadFiles();
     }
 
-    Future<void> _loadFiles() async
+    Future<File?> _getCurrentFile() async
     {
-        List<File?> temp = [];
-
-        for (var asset in widget.images)
-        {
-            temp.add(await asset.file);
-        }
-
-        _files = temp;
-
-        setState(()
-            {
-                _isLoading = false;
-            });
+        return await widget.images[_currentIndex].file;
     }
 
     Future<void> _shareImage() async
     {
-        final file = _files[_currentIndex];
-        if (file != null)
+        final file = await _getCurrentFile();
+        if (file != null) 
         {
             await Share.shareXFiles([XFile(file.path)]);
         }
@@ -75,7 +60,7 @@ class _ImageViewState extends State<ImageView>
 
     Future<void> _editImage() async
     {
-        final file = _files[_currentIndex];
+        final file = await _getCurrentFile();
         if (file == null) return;
 
         Navigator.push(
@@ -87,27 +72,15 @@ class _ImageViewState extends State<ImageView>
     }
 
     @override
-    Widget build(BuildContext context)
+    Widget build(BuildContext context) 
     {
-        if (_isLoading)
-        {
-            return const Scaffold(
-                backgroundColor: Colors.black,
-                body: Center(
-                    child: CircularProgressIndicator()
-                )
-            );
-        }
-
         return Scaffold(
             backgroundColor: Colors.black,
             body: Stack(
                 children: [
-
-                    /// 🔥 Perfect Zoom + Swipe
                     PhotoViewGallery.builder(
                         pageController: _controller,
-                        itemCount: _files.length,
+                        itemCount: widget.images.length,
                         backgroundDecoration:
                         const BoxDecoration(color: Colors.black),
                         onPageChanged: (index)
@@ -117,14 +90,17 @@ class _ImageViewState extends State<ImageView>
                         builder: (context, index)
                         {
                             return PhotoViewGalleryPageOptions(
-                                imageProvider: FileImage(_files[index]!),
+                                imageProvider: AssetEntityImageProvider(
+                                    widget.images[index],
+                                    isOriginal: true
+                                ),
                                 minScale: PhotoViewComputedScale.contained,
                                 maxScale: PhotoViewComputedScale.covered * 3
                             );
                         }
                     ),
 
-                    /// 🔹 Bottom Action Bar
+                    /// Bottom Bar
                     Positioned(
                         bottom: 0,
                         left: 0,

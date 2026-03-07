@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:emulator/Gallery/gallery.dart';
 import 'package:emulator/animationLockScreen/LockScreenAnimation.dart';
+import 'package:emulator/browser/index.dart';
+import 'package:emulator/browser/tabView.dart';
 import 'package:emulator/calculator/calculator.dart';
 import 'package:emulator/camera/camera.dart';
 import 'package:emulator/login_page.dart';
@@ -32,7 +34,7 @@ class MyApp extends StatelessWidget
     {
         return MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: LoginPage()
+            home: HomePage()
         );
     }
 }

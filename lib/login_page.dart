@@ -1,42 +1,68 @@
 import 'package:emulator/animationLockScreen/LockScreenAnimation.dart';
-import 'package:emulator/main.dart';
 import 'package:emulator/settings/settingOption/password.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:rive/rive.dart';
 import 'database/password.dart';
+import 'database/isPasswordRequeired.dart';
 
 class LoginPage extends StatefulWidget
 {
     const LoginPage({super.key});
 
     @override
-    State<StatefulWidget> createState() => _LoginPageState();
+    State<LoginPage> createState() => _LoginPageState();
 }
+
 class _LoginPageState extends State<LoginPage>
 {
-    final PasswordStorage _authService = PasswordStorage();    
+    final PasswordStorage _authService = PasswordStorage();
+    final IsPasswordRequired _isRequired = IsPasswordRequired();
+
     bool _obsecure = true;
     final TextEditingController _controller = TextEditingController();
-    late SMITrigger _trigger;
 
-    bool _isPassword = false;
+    bool _isPasswordRequired = false;
+    bool _isPasswordSet = false;
+
     String _message = "";
 
     @override
-    void initState()
+    void initState() 
     {
-        // TODO: implement initState
         super.initState();
-        _checkPassword();
+        _initializeApp();
     }
 
-    Future<void> _checkPassword() async
+    /// 🔥 CHECK EVERYTHING AT APP START
+    Future<void> _initializeApp() async
     {
+        bool required = await _isRequired.isPasswordRequired();
         bool exists = await _authService.isPasswordSet();
+
+        if (!required) 
+        {
+            // 🔓 Password not required → Go directly
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LockscreenAnimation())
+            );
+            return;
+        }
+
+        if (required && !exists) 
+        {
+            // ⚠ Required but password not set → Go to Password Page
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => Password())
+            );
+            return;
+        }
+
         setState(()
             {
-                _isPassword = exists;
+                _isPasswordRequired = required;
+                _isPasswordSet = exists;
             });
     }
 
@@ -44,7 +70,7 @@ class _LoginPageState extends State<LoginPage>
     {
         String input = _controller.text.trim();
 
-        if (input.isEmpty)
+        if (input.isEmpty) 
         {
             setState(()
                 {
@@ -53,136 +79,90 @@ class _LoginPageState extends State<LoginPage>
             return;
         }
 
-        if (!_isPassword)
+        bool correct = await _authService.verifyPassword(input);
+
+        if (correct) 
         {
-            await _authService.setPassword(input);
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LockscreenAnimation())
+            );
+        } else 
+        {
             setState(()
                 {
-                    _message = "Password set successfully!";
-                    _isPassword = true;
+                    _message = "Wrong Password";
                 });
         }
-        else
-        {
-            bool correct = await _authService.verifyPassword(input);
 
-            if (correct)
-            {
-                setState(()
-                    {
-                        Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => LockscreenAnimation())
-                        );
-
-                    });
-            } else
-            {
-                setState(()
-                    {
-                        _message = "Wrong Password";
-                    });
-            }
-        }
         _controller.clear();
     }
 
-    void _onRiverItt(Artboard artboard)
-    {
-        final controller = StateMachineController.fromArtboard(artboard, 'State Machine 1');
-        if (controller != null)
-        {
-            artboard.addController(controller);
-            _trigger = controller.findSMI('play') as SMITrigger;
-        }
-    }
-
     @override
-    void dispose()
+    void dispose() 
     {
         _controller.dispose();
         super.dispose();
     }
 
     @override
-    Widget build(BuildContext context)
+    Widget build(BuildContext context) 
     {
         return Scaffold(
-            body: Center(
-                child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                        Padding(
-                            padding: const EdgeInsets.only(left: 14.0, right: 14),
-                            child: SizedBox(
-                                // width: 370,
-                                height: 50,
+            body: _isPasswordRequired
+                ? Center(
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+
+                            Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
                                 child: TextField(
                                     controller: _controller,
                                     obscureText: _obsecure,
                                     decoration: InputDecoration(
                                         filled: true,
                                         labelText: "Password",
-
-                                        labelStyle: TextStyle(
-                                            color: Colors.black
-                                        ),
-                                        prefixIcon: Icon(Icons.password, color: Colors.black, size: 20, fontWeight: FontWeight.bold),
-                                        suffixIcon: IconButton(onPressed: ()
+                                        prefixIcon: Icon(Icons.lock),
+                                        suffixIcon: IconButton(
+                                            icon: Icon(
+                                                _obsecure
+                                                    ? CupertinoIcons.eye
+                                                    : CupertinoIcons.eye_slash
+                                            ),
+                                            onPressed: ()
                                             {
                                                 setState(()
                                                     {
                                                         _obsecure = !_obsecure;
                                                     });
-                                            }, icon: Icon(_obsecure ? CupertinoIcons.eye : CupertinoIcons.eye_slash)),
-
-                                        fillColor: Colors.grey.shade100,
-                                        border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(15),
-                                            borderSide: BorderSide(
-                                                color: Colors.blue,
-                                                width: 1.0
-                                            )
+                                            }
                                         ),
-                                        focusedBorder: OutlineInputBorder(
-
-                                            borderRadius: BorderRadius.circular(15),
-                                            borderSide: BorderSide(
-                                                color: Colors.purple,
-                                                width: 2
-                                            )
+                                        border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(15)
                                         )
                                     )
                                 )
+                            ),
+
+                            SizedBox(height: 25),
+
+                            ElevatedButton(
+                                onPressed: _handleButton,
+                                child: Text("Login")
+                            ),
+
+                            SizedBox(height: 15),
+
+                            if (_message.isNotEmpty)
+                            Text(
+                                _message,
+                                style: TextStyle(color: Colors.red)
                             )
-                        ),
-                        SizedBox(
-                            height: 30
-                        ),
-                        ClipRRect(
-                            borderRadius: BorderRadiusGeometry.circular(30),
-                            child: Container(
-                                width: 150,
-                                height: 50,
-
-                                decoration: BoxDecoration(
-                                    color: Colors.blue
-                                ),
-
-                                child: InkWell(onTap: ()
-                                    {
-                                        _handleButton();
-
-                                    }, child: Center(child: Text(_isPassword ? "Login" : "Sign In", style: TextStyle(color: Colors.black, fontSize: 20)))
-
-                                )
-                            )
-                        )
-                    ]
-
+                        ]
+                    )
                 )
-            )
+                : SizedBox() // Prevent flicker
         );
     }
-
 }

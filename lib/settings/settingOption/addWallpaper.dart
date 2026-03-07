@@ -101,7 +101,7 @@ class _AddWallPaper extends State<Addwallpaper>
                                         {
                                             final file = await photos[index].originFile;
 
-                                            if (file == null) 
+                                            if (file == null)
                                             {
                                                 ScaffoldMessenger.of(context).showSnackBar(
                                                     const SnackBar(content: Text("Failed to load image"))
@@ -126,38 +126,43 @@ class _AddWallPaper extends State<Addwallpaper>
     }
 
     /// 🔥 SAVE WALLPAPER SAFELY
-    Future<void> _saveWallpaper(File originalFile) async {
-      final appDir = await getApplicationDocumentsDirectory();
+    Future<void> _saveWallpaper(File originalFile) async
+    {
+        final appDir = await getApplicationDocumentsDirectory();
 
-      try {
-        final oldPath = await _storage.getWallpaper();
+        try
+        {
+            final oldPath = await _storage.getWallpaper();
 
-        if (oldPath != null) {
-          final oldFile = File(oldPath);
+            if (oldPath != null)
+            {
+                final oldFile = File(oldPath);
 
-          // 🔥 Only delete if file exists AND inside app directory
-          if (await oldFile.exists() &&
-              oldPath.startsWith(appDir.path)) {
-            await oldFile.delete();
-          }
+                // 🔥 Only delete if file exists AND inside app directory
+                if (await oldFile.exists() &&
+                    oldPath.startsWith(appDir.path))
+                {
+                    await oldFile.delete();
+                }
+            }
+        } catch (e)
+        {
+            debugPrint("Old wallpaper delete failed: $e");
         }
-      } catch (e) {
-        debugPrint("Old wallpaper delete failed: $e");
-      }
 
-      // 🔥 Create new file in app storage
-      final fileName =
-          "wallpaper_${DateTime.now().millisecondsSinceEpoch}.jpg";
+        // 🔥 Create new file in app storage
+        final fileName =
+            "wallpaper_${DateTime.now().millisecondsSinceEpoch}.jpg";
 
-      final newPath = "${appDir.path}/$fileName";
+        final newPath = "${appDir.path}/$fileName";
 
-      final newFile = await originalFile.copy(newPath);
+        final newFile = await originalFile.copy(newPath);
 
-      await _storage.setWallpaper(newFile.path);
+        await _storage.setWallpaper(newFile.path);
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      Navigator.pop(context, true);
+        Navigator.pop(context, true);
     }
 
     @override
@@ -171,36 +176,39 @@ class _AddWallPaper extends State<Addwallpaper>
                     style: TextStyle(fontSize: 24, color: Colors.white)
                 )
             ),
-            body: Column(
-                children: [
-                    const SizedBox(height: 30),
+            body: Center(
 
-                    const Text(
-                        "Current Wallpaper",
-                        style: TextStyle(fontSize: 20)
-                    ),
+                child: Column(
+                    children: [
+                        const SizedBox(height: 30),
 
-                    const SizedBox(height: 20),
-
-                    currentWallpaper.isEmpty
-                        ? const Icon(Icons.image, size: 100)
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(15),
-                            child: Image.file(
-                                File(currentWallpaper),
-                                width: 200,
-                                height: 150,
-                                fit: BoxFit.cover
-                            )
+                        const Text(
+                            "Current Wallpaper",
+                            style: TextStyle(fontSize: 20)
                         ),
 
-                    const SizedBox(height: 40),
+                        const SizedBox(height: 20),
 
-                    ElevatedButton(
-                        onPressed: _openGallery,
-                        child: const Text("Choose From Gallery")
-                    )
-                ]
+                        currentWallpaper.isEmpty
+                            ? const Icon(Icons.image, size: 100)
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(15),
+                                child: Image.file(
+                                    File(currentWallpaper),
+                                    width: 200,
+                                    height: 150,
+                                    fit: BoxFit.cover
+                                )
+                            ),
+
+                        const SizedBox(height: 40),
+
+                        ElevatedButton(
+                            onPressed: _openGallery,
+                            child: const Text("Choose From Gallery")
+                        )
+                    ]
+                )
             )
         );
     }
