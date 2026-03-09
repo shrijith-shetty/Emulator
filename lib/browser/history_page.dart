@@ -2,66 +2,67 @@ import 'package:flutter/material.dart';
 import 'history_manager.dart';
 import 'webview_page.dart';
 
-class HistoryPage extends StatelessWidget
-{
+class HistoryPage extends StatefulWidget {
+  final HistoryManager historyManager;
 
-    final HistoryManager historyManager;
+  const HistoryPage({super.key, required this.historyManager});
 
-    const HistoryPage({super.key, required this.historyManager});
+  @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
 
-    @override
-    Widget build(BuildContext context) 
-    {
+class _HistoryPageState extends State<HistoryPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("History"),
 
-        return Scaffold(
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () {
+              setState(() {
+                widget.historyManager.clear();
+              });
+            },
+          ),
+        ],
+      ),
 
-            appBar: AppBar(
-                title: const Text("History"),
+      body: widget.historyManager.history.isEmpty
+          ? const Center(child: Text("No history yet"))
+          : ListView.builder(
+        itemCount: widget.historyManager.history.length,
 
-                actions: [
+        itemBuilder: (context, index) {
+          final url = widget.historyManager.history[index];
 
-                    IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: ()
-                        {
+          return ListTile(
+            leading: const Icon(Icons.history),
 
-                            historyManager.clear();
-                            Navigator.pop(context);
+            title: Text(url),
 
-                        }
-                    )
-                ]
+            trailing: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                setState(() {
+                  widget.historyManager.remove(url);
+                });
+              },
             ),
 
-            body: ListView.builder(
-
-                itemCount: historyManager.history.length,
-
-                itemBuilder: (context, index)
-                {
-
-                    final url = historyManager.history[index];
-
-                    return ListTile(
-
-                        leading: const Icon(Icons.history),
-
-                        title: Text(url),
-
-                        onTap: ()
-                        {
-
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => WebViewPage(url: url)
-                                )
-                            );
-
-                        }
-                    );
-                }
-            )
-        );
-    }
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => WebViewPage(url: url),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
 }

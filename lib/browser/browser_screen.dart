@@ -3,7 +3,6 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'tab_manager.dart';
 
 class BrowserScreen extends StatefulWidget {
-
   final TabManager tabManager;
 
   const BrowserScreen({super.key, required this.tabManager});
@@ -13,43 +12,29 @@ class BrowserScreen extends StatefulWidget {
 }
 
 class _BrowserScreenState extends State<BrowserScreen> {
-
   InAppWebViewController? webViewController;
 
   double progress = 0;
 
   @override
   Widget build(BuildContext context) {
-
     final tab = widget.tabManager.currentTab;
 
     return Scaffold(
-
-      appBar: AppBar(
-        title: Text(
-          tab.url,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
+      appBar: AppBar(title: Text(tab.url, overflow: TextOverflow.ellipsis)),
 
       body: Column(
         children: [
-
           /// Progress bar
           progress < 1.0
               ? LinearProgressIndicator(value: progress)
               : const SizedBox(),
 
           Expanded(
-
             child: InAppWebView(
+              initialUrlRequest: URLRequest(url: WebUri(tab.url)),
 
-              initialUrlRequest:
-              URLRequest(url: WebUri(tab.url)),
-
-              initialSettings: InAppWebViewSettings(
-                javaScriptEnabled: true,
-              ),
+              initialSettings: InAppWebViewSettings(javaScriptEnabled: true),
 
               onWebViewCreated: (controller) {
                 webViewController = controller;
@@ -57,44 +42,48 @@ class _BrowserScreenState extends State<BrowserScreen> {
               },
 
               onProgressChanged: (controller, progressValue) {
-
                 setState(() {
                   progress = progressValue / 100;
                 });
-
               },
 
+              onLoadStop: (controller, url) async {
+                if (url != null) {
+                  setState(() {
+                    tab.url = url.toString();
+                  });
+                }
+                final title = await controller.getTitle();
+                if (title != null && title.isNotEmpty) {
+                  setState(() {
+                    tab.title = title;
+                  });
+                }
+              },
             ),
-
           ),
 
           /// Navigation controls
           Container(
-
             height: 55,
 
             decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Colors.grey.shade300),
-              ),
+              border: Border(top: BorderSide(color: Colors.grey.shade300)),
             ),
 
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
 
               children: [
-
                 /// Back
                 IconButton(
                   icon: const Icon(Icons.arrow_back),
 
                   onPressed: () async {
-
                     if (webViewController != null &&
                         await webViewController!.canGoBack()) {
                       webViewController!.goBack();
                     }
-
                   },
                 ),
 
@@ -103,12 +92,10 @@ class _BrowserScreenState extends State<BrowserScreen> {
                   icon: const Icon(Icons.arrow_forward),
 
                   onPressed: () async {
-
                     if (webViewController != null &&
                         await webViewController!.canGoForward()) {
                       webViewController!.goForward();
                     }
-
                   },
                 ),
 
@@ -120,11 +107,9 @@ class _BrowserScreenState extends State<BrowserScreen> {
                     webViewController?.reload();
                   },
                 ),
-
               ],
             ),
           ),
-
         ],
       ),
     );

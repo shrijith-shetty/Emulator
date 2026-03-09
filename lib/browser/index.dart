@@ -1,4 +1,7 @@
+import 'package:emulator/browser/bookmark_manager.dart';
+import 'package:emulator/browser/browser_settings.dart';
 import 'package:emulator/browser/history_manager.dart';
+import 'package:emulator/browser/history_page.dart';
 import 'package:emulator/browser/settings.dart';
 import 'package:emulator/browser/tabView.dart';
 import 'package:emulator/browser/webview_page.dart';
@@ -7,326 +10,314 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:emulator/browser/tab_manager.dart';
-import 'tabView.dart' hide TabView;
 
-class HomePage extends StatefulWidget
-{
-    const HomePage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
-    @override
-    State<StatefulWidget> createState() => HomePageState();
+  @override
+  State<StatefulWidget> createState() => HomePageState();
 }
 
-class HomePageState extends State<HomePage>
-{
-    HistoryManager historyManager = HistoryManager();
-    TabManager tabManager = TabManager();
-    List searchResult = [];
-    bool isLoading = false;
+class HomePageState extends State<HomePage> {
+  HistoryManager historyManager = HistoryManager();
+  BookmarkManager bookmarkManager = BookmarkManager();
+  BrowserSettings browserSettings = BrowserSettings();
+  TabManager tabManager = TabManager();
+  List searchSuggestions = [];
+  bool isLoadingSuggestions = false;
 
-    FocusNode searchFocus = FocusNode();
-    bool isFocused = false;
+  FocusNode searchFocus = FocusNode();
+  bool isFocused = false;
 
-    TextEditingController searchController = TextEditingController();
+  TextEditingController searchController = TextEditingController();
 
-    @override
-    void initState()
-    {
-        super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-        searchFocus.addListener(()
-            {
-                setState(()
-                    {
-                        isFocused = searchFocus.hasFocus;
-                    });
-            });
+    searchFocus.addListener(() {
+      setState(() {
+        isFocused = searchFocus.hasFocus;
+      });
+    });
+  }
+
+  void intoHomeScreen() {
+    setState(() {
+      searchSuggestions = [];
+      isFocused = false;
+      isLoadingSuggestions = false;
+      searchController.clear();
+    });
+    searchFocus.unfocus();
+  }
+
+  @override
+  void dispose() {
+    searchFocus.dispose();
+    searchController.dispose();
+    super.dispose();
+  }
+
+  void handleSearch(String query) {
+    query = query.trim();
+    if (query.isEmpty) return;
+
+    String url;
+
+    /// If user typed a URL
+    if (query.contains(".") && !query.contains(" ")) {
+      url = query;
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "https://$url";
+      }
+    }
+    /// Otherwise open search
+    else {
+      url = browserSettings.getSearchUrl(query);
     }
 
-    void intoHomeScreen()
-    {
-        setState(()
-            {
-                searchResult = [];
-                isFocused = false;
-                isLoading = false;
-                searchController.clear();
-            });
-        searchFocus.unfocus();
+    historyManager.add(url);
+    setState(() {
+      searchSuggestions = [];
+    });
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WebViewPage(
+          url: url,
+          javascriptEnabled: browserSettings.javascriptEnabled,
+        ),
+      ),
+    );
+  }
+
+  /// Fetch search suggestions while typing
+  void fetchSuggestions(String query) async {
+    query = query.trim();
+    if (query.isEmpty) {
+      setState(() {
+        searchSuggestions = [];
+      });
+      return;
     }
 
-    @override
-    void dispose()
-    {
-        searchFocus.dispose();
-        searchController.dispose();
-        super.dispose();
+    setState(() {
+      isLoadingSuggestions = true;
+    });
+
+    try {
+      final url = Uri.parse(
+        "https://duckduckgo.com/ac/?q=${Uri.encodeComponent(query)}&type=list",
+      );
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          searchSuggestions = data is List ? data : [];
+          isLoadingSuggestions = false;
+        });
+      } else {
+        setState(() {
+          isLoadingSuggestions = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoadingSuggestions = false;
+      });
     }
-    void handleSearch(String query)
-    {
+  }
 
-        query = query.trim();
+  @override
+  Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
 
-        /// If user typed a URL
-        if (query.contains("."))
-        {
-
-            String url = query;
-
-            if (!url.startsWith("http://") && !url.startsWith("https://"))
-            {
-                url = "https://$url";
-            }
-
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => WebViewPage(url: url)
-                )
-            );
-
-        }
-
-        /// Otherwise perform search
-        else
-        {
-            search(query);
-        }
-    }
-    @override
-    Widget build(BuildContext context)
-    {
-
-        double screenHeight = MediaQuery.of(context).size.height;
-
-        return Scaffold(
-
-            appBar: AppBar(
-                title: Row(
-                    children: [
-
-                        InkWell(
-                            onTap: ()
-                            {
-                                intoHomeScreen();
-                            },
-                            child: const Icon(Icons.home_outlined)),
-
-                        const Spacer(),
-
-                        InkWell(
-                            onTap: ()
-                            {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => TabView(tabManager: tabManager)
-                                    )
-                                );
-                            },
-                            child: Stack(
-                                alignment: Alignment.center,
-                                children: const[
-                                    Icon(CupertinoIcons.square),
-                                    Text("1", style: TextStyle(fontSize: 15))
-                                ]
-                            )
-                        ),
-
-                        const SizedBox(width: 15),
-
-                        PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert),
-
-                            onSelected: (value)
-                            {
-
-                                if (value == "settings") 
-                                {
-
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) => const SettingsPage()
-                                        )
-                                    );
-
-                                }
-
-                            },
-
-                            itemBuilder: (context) => [
-
-                                const PopupMenuItem(
-                                    value: "settings",
-                                    child: Text("Settings")
-                                )
-
-                            ]
-                        )
-
-                    ]
-                )
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            InkWell(
+              onTap: () {
+                intoHomeScreen();
+              },
+              child: const Icon(Icons.home_outlined),
             ),
 
-            body: Stack(
+            const Spacer(),
+
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TabView(tabManager: tabManager),
+                  ),
+                );
+              },
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
+                  const Icon(CupertinoIcons.square),
+                  Text(
+                    "${tabManager.tabs.length}",
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ],
+              ),
+            ),
 
-                    /// GOOGLE LOGO
-                    Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: AnimatedOpacity(
-                            opacity: isFocused ? 0 : 1,
-                            duration: const Duration(milliseconds: 400),
-                            child: Center(
-                                child: Image.asset(
-                                    "assets/browser/google.png",
-                                    width: 100,
-                                    height: 100
-                                )
-                            )
-                        )
+            const SizedBox(width: 15),
+
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+
+              onSelected: (value) {
+                if (value == "settings") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SettingsPage(
+                        settings: browserSettings,
+                        historyManager: historyManager,
+                        bookmarkManager: bookmarkManager,
+                      ),
                     ),
-
-                    /// SEARCH BAR
-                    AnimatedPositioned(
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeInOut,
-
-                        top: isFocused ? 10 : screenHeight * 0.12,
-                        left: 20,
-                        right: 20,
-
-                        child: FractionallySizedBox(
-                            widthFactor: 0.9,
-                            child: TextField(
-
-                                controller: searchController,
-                                focusNode: searchFocus,
-
-                                onSubmitted: (value)
-                                {
-                                    handleSearch(value);
-                                },
-
-                                decoration: InputDecoration(
-
-                                    suffixIcon: const Icon(CupertinoIcons.mic),
-
-                                    labelText: "Search or Enter URL",
-                                    labelStyle: const TextStyle(color: Colors.blue),
-
-                                    prefixIcon: Padding(
-                                        padding: const EdgeInsets.all(8),
-                                        child: Image.asset(
-                                            "assets/browser/google.png",
-                                            width: 24,
-                                            height: 24
-                                        )
-                                    ),
-
-                                    fillColor: Colors.white10,
-                                    filled: true,
-
-                                    enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                        borderSide:
-                                        BorderSide(color: Colors.grey.shade700)
-                                    ),
-
-                                    focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                        borderSide: const BorderSide(
-                                            color: Colors.blueAccent, width: 2)
-                                    )
-                                )
-                            )
-                        )
+                  );
+                } else if (value == "history") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          HistoryPage(historyManager: historyManager),
                     ),
+                  );
+                }
+              },
 
-                    /// SEARCH RESULTS
-                    Positioned(
-                        top: isFocused ? 80 : screenHeight * 0.6,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: "history", child: Text("History")),
+                const PopupMenuItem(value: "settings", child: Text("Settings")),
+              ],
+            ),
+          ],
+        ),
+      ),
 
-                        child: isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : ListView.builder(
+      body: Stack(
+        children: [
+          /// GOOGLE LOGO
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AnimatedOpacity(
+              opacity: isFocused ? 0 : 1,
+              duration: const Duration(milliseconds: 400),
+              child: Center(
+                child: Image.asset(
+                  "assets/browser/google.png",
+                  width: 100,
+                  height: 100,
+                ),
+              ),
+            ),
+          ),
 
-                                itemCount: searchResult.length,
+          /// SEARCH BAR
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
 
-                                itemBuilder: (context, index)
-                                {
+            top: isFocused ? 10 : screenHeight * 0.12,
+            left: 20,
+            right: 20,
 
-                                    final item = searchResult[index];
+            child: FractionallySizedBox(
+              widthFactor: 0.9,
+              child: TextField(
+                controller: searchController,
+                focusNode: searchFocus,
 
-                                    if (item["FirstURL"] == null)
-                                    {
-                                        return const SizedBox();
-                                    }
+                onSubmitted: (value) {
+                  handleSearch(value);
+                },
 
-                                    return ListTile(
+                onChanged: (value) {
+                  fetchSuggestions(value);
+                },
 
-                                        title: Text(item["Text"] ?? ""),
+                decoration: InputDecoration(
+                  suffixIcon: const Icon(CupertinoIcons.mic),
 
-                                        onTap: ()
-                                        {
+                  labelText: "Search or Enter URL",
+                  labelStyle: const TextStyle(color: Colors.blue),
 
-                                            Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                    WebViewPage(
-                                                        url: item["FirstURL"])
-                                                )
-                                            );
-                                        }
-                                    );
-                                }
-                            )
-                    )
-                ]
-            )
-        );
-    }
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Image.asset(
+                      "assets/browser/google.png",
+                      width: 24,
+                      height: 24,
+                    ),
+                  ),
 
-    /// SEARCH FUNCTION
-    Future<void> search(String query) async
-    {
+                  fillColor: Colors.white10,
+                  filled: true,
 
-        setState(()
-            {
-                isLoading = true;
-            });
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(color: Colors.grey.shade700),
+                  ),
 
-        final url = Uri.parse(
-            "https://api.duckduckgo.com/?q=$query&format=json");
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: const BorderSide(
+                      color: Colors.blueAccent,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
 
-        final response = await http.get(url);
+          /// SEARCH SUGGESTIONS
+          Positioned(
+            top: isFocused ? 80 : screenHeight * 0.6,
+            left: 0,
+            right: 0,
+            bottom: 0,
 
-        if (response.statusCode == 200)
-        {
+            child: isLoadingSuggestions
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+              itemCount: searchSuggestions.length,
 
-            final data = jsonDecode(response.body);
+              itemBuilder: (context, index) {
+                final suggestion = searchSuggestions[index];
+                final text = suggestion is Map
+                    ? (suggestion["phrase"] ?? "")
+                    : suggestion.toString();
 
-            setState(()
-                {
-                    searchResult = data["RelatedTopics"];
-                    isLoading = false;
-                });
+                if (text.isEmpty) return const SizedBox();
 
-        } else
-        {
+                return ListTile(
+                  leading: const Icon(Icons.search),
+                  title: Text(text),
 
-            setState(()
-                {
-                    isLoading = false;
-                });
-        }
-    }
-
+                  onTap: () {
+                    searchController.text = text;
+                    handleSearch(text);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

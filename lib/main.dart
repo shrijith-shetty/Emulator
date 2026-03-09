@@ -7,6 +7,7 @@ import 'package:emulator/calculator/calculator.dart';
 import 'package:emulator/camera/camera.dart';
 import 'package:emulator/login_page.dart';
 import 'package:emulator/settings/settings.dart';
+import 'package:emulator/spashScreen/broswer.dart';
 import 'package:emulator/spashScreen/calculator.dart';
 import 'package:emulator/spashScreen/camera.dart';
 import 'package:emulator/spashScreen/gallery.dart';
@@ -34,7 +35,7 @@ class MyApp extends StatelessWidget
     {
         return MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: HomePage()
+            home: MyHomePage()
         );
     }
 }
@@ -158,7 +159,15 @@ class _MyHomePageState extends State<MyHomePage>
                                             context,
                                             MaterialPageRoute(builder: (_) => SpashScreenGallery())
                                         )
-                                    )
+                                    ),
+                                  _appIcon(
+                                      context,
+                                      'assets/icon/broswer.webp',
+                                          () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (_) => SpashScreenBroswer())
+                                      )
+                                  )
                                 ]
                             )
                         )
