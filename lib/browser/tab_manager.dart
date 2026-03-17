@@ -14,24 +14,24 @@ class TabManager
 
     BrowserTab get currentTab => tabs[currentIndex];
 
-    void addTab(String url) 
+    void addTab(String url)
     {
         tabs.add(BrowserTab(url: url));
         currentIndex = tabs.length - 1;
     }
 
-    void switchTab(int index) 
+    void switchTab(int index)
     {
         currentIndex = index;
     }
 
-    void closeTab(int index) 
+    void closeTab(int index)
     {
         if (tabs.length == 1) return;
 
         tabs.removeAt(index);
 
-        if (currentIndex >= tabs.length) 
+        if (currentIndex >= tabs.length)
         {
             currentIndex = tabs.length - 1;
         }

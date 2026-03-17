@@ -11,6 +11,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:emulator/browser/tab_manager.dart';
 
+GlobalKey<HomePageState> widgetKey = GlobalKey<HomePageState>();
+
 class HomePage extends StatefulWidget
 {
     const HomePage({super.key});
@@ -25,8 +27,9 @@ class HomePageState extends State<HomePage>
     BookmarkManager bookmarkManager = BookmarkManager();
     BrowserSettings browserSettings = BrowserSettings();
     late TabManager tabManager;
-    List searchSuggestions = [];
+    List<dynamic> searchSuggestions = [];
     bool isLoadingSuggestions = false;
+    int _suggestionRequestId = 0;
 
     FocusNode searchFocus = FocusNode();
     bool isFocused = false;
@@ -59,6 +62,7 @@ class HomePageState extends State<HomePage>
 
     void intoHomeScreen() 
     {
+        _suggestionRequestId++;
         setState(()
             {
                 searchSuggestions = [];
@@ -83,6 +87,9 @@ class HomePageState extends State<HomePage>
         query = query.trim();
         if (query.isEmpty) return;
 
+        _suggestionRequestId++;
+        searchFocus.unfocus();
+
         String url;
 
         /// If user typed a URL
@@ -104,6 +111,9 @@ class HomePageState extends State<HomePage>
         setState(()
             {
                 searchSuggestions = [];
+                isLoadingSuggestions = false;
+                isFocused = false;
+                searchController.clear();
             });
 
         Navigator.push(
@@ -111,7 +121,8 @@ class HomePageState extends State<HomePage>
             MaterialPageRoute(
                 builder: (context) => WebViewPage(
                     url: url,
-                    javascriptEnabled: browserSettings.javascriptEnabled
+                    settings: browserSettings,
+                    widgetKey: widgetKey
                 )
             )
         );
@@ -121,14 +132,19 @@ class HomePageState extends State<HomePage>
     void fetchSuggestions(String query) async
     {
         query = query.trim();
+        final requestId = ++_suggestionRequestId;
+
         if (query.isEmpty) 
         {
             setState(()
                 {
                     searchSuggestions = [];
+                    isLoadingSuggestions = false;
                 });
             return;
         }
+
+        if (!mounted) return;
 
         setState(()
             {
@@ -142,11 +158,16 @@ class HomePageState extends State<HomePage>
             );
             final response = await http.get(url);
 
+            if (!mounted || requestId != _suggestionRequestId) 
+            {
+                return;
+            }
+
             if (response.statusCode == 200) 
             {
                 final data = jsonDecode(response.body);
                 // DuckDuckGo returns ["query", ["suggestion1", "suggestion2", ...]]
-                List suggestions = [];
+                List<dynamic> suggestions = [];
                 if (data is List && data.length > 1 && data[1] is List) 
                 {
                     suggestions = data[1];
@@ -154,6 +175,17 @@ class HomePageState extends State<HomePage>
                 {
                     suggestions = data;
                 }
+
+                if (!searchFocus.hasFocus || searchController.text.trim() != query) 
+                {
+                    setState(()
+                        {
+                            searchSuggestions = [];
+                            isLoadingSuggestions = false;
+                        });
+                    return;
+                }
+
                 setState(()
                     {
                         searchSuggestions = suggestions;
@@ -168,6 +200,11 @@ class HomePageState extends State<HomePage>
             }
         } catch (e)
         {
+            if (!mounted || requestId != _suggestionRequestId) 
+            {
+                return;
+            }
+
             setState(()
                 {
                     isLoadingSuggestions = false;
@@ -179,6 +216,8 @@ class HomePageState extends State<HomePage>
     Widget build(BuildContext context) 
     {
         double screenHeight = MediaQuery.of(context).size.height;
+        final showSuggestions =
+            isFocused && searchController.text.trim().isNotEmpty;
 
         return ListenableBuilder(
             listenable: browserSettings,
@@ -197,13 +236,12 @@ class HomePageState extends State<HomePage>
                             automaticallyImplyLeading: false,
                             title: Row(
                                 children: [
-                                    InkWell(
-                                        onTap: ()
-                                        {
-                                            intoHomeScreen();
-                                        },
-                                        child: const Icon(Icons.home_outlined)
-                                    ),
+                                    // InkWell(
+                                    //   onTap: () {
+                                    //     intoHomeScreen();
+                                    //   },
+                                    //   child: const Icon(Icons.home_outlined),
+                                    // ),
 
                                     const Spacer(),
 
@@ -215,7 +253,9 @@ class HomePageState extends State<HomePage>
                                                 MaterialPageRoute(
                                                     builder: (context) => TabView(
                                                         tabManager: tabManager,
-                                                        browserSettings: browserSettings
+                                                      browserSettings: browserSettings,
+                                                      historyManager: historyManager,       // ✅ FIX
+                                                      bookmarkManager: bookmarkManager,
                                                     )
                                                 )
                                             );
@@ -223,10 +263,10 @@ class HomePageState extends State<HomePage>
                                         child: Stack(
                                             alignment: Alignment.center,
                                             children: [
-                                                const Icon(CupertinoIcons.square),
+                                                const Icon(CupertinoIcons.square, size: 30),
                                                 Text(
                                                     "${tabManager.tabs.length}",
-                                                    style: const TextStyle(fontSize: 15)
+                                                    style: const TextStyle(fontSize: 22)
                                                 )
                                             ]
                                         )
@@ -235,13 +275,13 @@ class HomePageState extends State<HomePage>
                                     const SizedBox(width: 15),
 
                                     PopupMenuButton<String>(
-                                        icon: const Icon(Icons.more_vert),
+                                        icon: const Icon(Icons.more_vert, size: 30),
 
-                                        onSelected: (value)
+                                        onSelected: (value) async
                                         {
                                             if (value == "settings") 
                                             {
-                                                Navigator.push(
+                                                await Navigator.push(
                                                     context,
                                                     MaterialPageRoute(
                                                         builder: (context) => SettingsPage(
@@ -251,9 +291,13 @@ class HomePageState extends State<HomePage>
                                                         )
                                                     )
                                                 );
+                                                if (mounted) 
+                                                {
+                                                    intoHomeScreen();
+                                                }
                                             } else if (value == "history") 
                                             {
-                                                Navigator.push(
+                                                await Navigator.push(
                                                     context,
                                                     MaterialPageRoute(
                                                         builder: (context) => HistoryPage(
@@ -262,6 +306,10 @@ class HomePageState extends State<HomePage>
                                                         )
                                                     )
                                                 );
+                                                if (mounted) 
+                                                {
+                                                    intoHomeScreen();
+                                                }
                                             }
                                         },
 
@@ -326,9 +374,17 @@ class HomePageState extends State<HomePage>
                                             },
 
                                             decoration: InputDecoration(
-                                                suffixIcon: const Icon(CupertinoIcons.mic),
+                                                suffixIcon: InkWell(
+                                                    onTap: ()
+                                                    {
+                                                        searchFocus.unfocus();
+                                                        //search operation
+                                                        handleSearch(searchController.text.trim());
+                                                    },
+                                                    child: const Icon(CupertinoIcons.search)
+                                                ),
 
-                                                labelText: "Search or Enter URL",
+                                                labelText: "Search",
                                                 labelStyle: const TextStyle(color: Colors.blue),
 
                                                 prefixIcon: Padding(
@@ -362,37 +418,39 @@ class HomePageState extends State<HomePage>
 
                                 /// SEARCH SUGGESTIONS
                                 Positioned(
-                                    top: isFocused ? 80 : screenHeight * 0.6,
+                                    top: showSuggestions ? 80 : screenHeight * 0.6,
                                     left: 0,
                                     right: 0,
                                     bottom: 0,
 
-                                    child: isLoadingSuggestions
-                                        ? const Center(child: CircularProgressIndicator())
-                                        : ListView.builder(
-                                            itemCount: searchSuggestions.length,
+                                    child: !showSuggestions
+                                        ? const SizedBox()
+                                        : isLoadingSuggestions
+                                            ? const Center(child: CircularProgressIndicator())
+                                            : ListView.builder(
+                                                itemCount: searchSuggestions.length,
 
-                                            itemBuilder: (context, index)
-                                            {
-                                                final suggestion = searchSuggestions[index];
-                                                final text = suggestion is Map
-                                                    ? (suggestion["phrase"] ?? "")
-                                                    : suggestion.toString();
+                                                itemBuilder: (context, index)
+                                                {
+                                                    final suggestion = searchSuggestions[index];
+                                                    final text = suggestion is Map
+                                                        ? (suggestion["phrase"] ?? "")
+                                                        : suggestion.toString();
 
-                                                if (text.isEmpty) return const SizedBox();
+                                                    if (text.isEmpty) return const SizedBox();
 
-                                                return ListTile(
-                                                    leading: const Icon(Icons.search),
-                                                    title: Text(text),
+                                                    return ListTile(
+                                                        leading: const Icon(Icons.search),
+                                                        title: Text(text),
 
-                                                    onTap: ()
-                                                    {
-                                                        searchController.text = text;
-                                                        handleSearch(text);
-                                                    }
-                                                );
-                                            }
-                                        )
+                                                        onTap: ()
+                                                        {
+                                                            searchController.text = text;
+                                                            handleSearch(text);
+                                                        }
+                                                    );
+                                                }
+                                            )
                                 )
                             ]
                         )
